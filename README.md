@@ -1,61 +1,66 @@
-# Prompt Orchestrator
+# Maktab · مكتب
 
-A 100% free, multi-tenant SaaS that turns rough user ideas into polished,
-model-aware prompts. Built on **Next.js + Supabase + Ollama + Vercel** —
-zero hosting, database, and AI fees.
+> **Your MBA, on one desk.**
 
-## Features
+Maktab is a bilingual (English + Arabic) study platform for MBA students,
+managers and entrepreneurs. It brings your courses, lectures, tasks,
+grades, study packs, group projects, flashcards, quizzes, weekly briefs,
+and an AI study tutor into one calm, mobile-first workspace.
 
-- Raw prompt intake with intent detection
-- Rule + LLM gap analysis → clarification questions
-- Multi-step Q&A session state
-- Final prompt reconstruction with rationale
-- Model-specific formatting for ChatGPT, Claude, Copilot, generic
-- Prompt history + versioning
-- Multi-tenant orgs with Postgres Row-Level Security
-- Chrome (Manifest V3) browser extension that injects into ChatGPT, Claude,
-  Copilot, and Gemini
+Built on **Next.js 14 (App Router) + Supabase + Tailwind + Framer Motion**.
+Deployable to **Vercel** on a free tier.
 
-## Folder structure
+## What you can do with Maktab
+
+- **Ask MBA** — an AI tutor grounded in business-school topics.
+- **Weekly Brief** — a Monday summary of what's due, what to study, what
+  to prep for.
+- **Study Packs** — bundle lecture notes, flashcards, and quizzes for a
+  topic or an exam.
+- **Group Project** — coordinate roles, deliverables, and deadlines with
+  your team.
+- **Grades + Timeline** — see where you stand and what's next.
+- **Files, Messages, Announcements** — one inbox for everything from
+  your programme.
+- **Bilingual EN / AR** with a real RTL layout, native fonts (Space
+  Grotesk + Fraunces + Tajawal + IBM Plex Sans Arabic + JetBrains Mono),
+  light and dark themes.
+- **Offline-ready PWA** with a service worker and installable manifest.
+
+## Repository layout
 
 ```
 .
-├── extension/                  Chrome MV3 extension
-│   ├── manifest.json
-│   ├── background.js           service worker
-│   ├── content.js / content.css inject Enhance button
-│   ├── popup.html / popup.js / popup.css
-│   └── options.html / options.js
-├── supabase/
-│   ├── migrations/0001_init.sql full schema + RLS
-│   └── seed.sql                public templates
 ├── src/
-│   ├── app/                    Next.js App Router
-│   │   ├── layout.tsx, page.tsx, globals.css
-│   │   ├── login/page.tsx
-│   │   ├── workspace/page.tsx
-│   │   ├── templates/page.tsx
-│   │   ├── history/page.tsx
-│   │   └── api/
-│   │       ├── health/
-│   │       ├── orgs/
-│   │       ├── templates/[id]/
-│   │       ├── sessions/[id]/answers/
-│   │       ├── sessions/[id]/finalize/
-│   │       └── extension/enhance/
-│   ├── components/
-│   │   └── Workspace.tsx
-│   └── lib/
-│       ├── env.ts, types.ts
-│       ├── supabase/{server,browser}.ts
-│       ├── llm/{ollama,prompts}.ts
-│       └── services/{orchestration,clarification,template,formatter,auth}.ts
-├── package.json, tsconfig.json, next.config.mjs
-├── tailwind.config.ts, postcss.config.mjs
-└── docs/
-    ├── API.md
-    └── DEPLOY.md
+│   ├── app/
+│   │   ├── (app)/         Authenticated study workspace (23 pages)
+│   │   ├── (auth)/        Login, signup, reset-password
+│   │   ├── (public)/      Landing, pricing, features, faq, terms, privacy
+│   │   ├── api/           22 API routes (ask-mba, tutor, tasks, files, …)
+│   │   ├── admin/         Feedback console
+│   │   ├── layout.tsx     Root layout + fonts + PWA registration
+│   │   └── sitemap.ts     SEO sitemap
+│   ├── lib/               engine, safe-fetch, supabase, i18n, services
+│   ├── components/        UI kit (glass cards, motion, icons, forms)
+│   └── middleware.ts      Supabase session refresh
+├── public/                icon, manifest.webmanifest, sw.js, offline assets
+├── supabase/              migrations, seed
+├── extension/             Browser extension (MV3)
+├── mobile/                Capacitor scaffold
+├── desktop/               Electron wrapper
+├── docs/                  Audit, deploy, mobile, desktop notes
+├── vercel.json            Deploy config
+├── tailwind.config.ts     Design tokens (brand / navy / teal / gold)
+└── package.json
 ```
+
+Sibling products that used to live in this repository now have their own
+repositories: [wisal](https://github.com/ahmadzayan-hub/wisal),
+[lahza](https://github.com/ahmadzayan-hub/lahza),
+[masaar](https://github.com/ahmadzayan-hub/masaar),
+[vertex](https://github.com/ahmadzayan-hub/vertex),
+[mutabasir](https://github.com/ahmadzayan-hub/mutabasir),
+[annual-operation-plan-2026](https://github.com/ahmadzayan-hub/annual-operation-plan-2026).
 
 ## Quick start
 
@@ -63,37 +68,31 @@ zero hosting, database, and AI fees.
 # 1. Install
 npm install
 
-# 2. Configure
+# 2. Configure (Supabase + optional OpenAI + optional Stripe)
 cp .env.example .env.local
-# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-# SUPABASE_SERVICE_ROLE_KEY, and OLLAMA_BASE_URL.
 
-# 3. Run Ollama (in another terminal)
-ollama pull llama3
-ollama pull mistral
-ollama pull phi3
-ollama serve
-
-# 4. Apply Supabase schema
-#   psql "$SUPABASE_DB_URL" -f supabase/migrations/0001_init.sql
-# (or paste it into the Supabase SQL editor)
-
-# 5. Start the app
+# 3. Run the dev server
 npm run dev
 # open http://localhost:3000
 ```
 
-## Browser extension
+Maktab boots with **no backend credentials required** — the demo flow
+redirects `/`, `/login`, and `/signup` to `/dashboard` and every page
+renders sample content. Add `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to enable real auth and
+persistence; add `OPENAI_API_KEY` (server-only) for higher-quality Ask
+MBA responses; add `STRIPE_*` for the subscription page.
+
+## Quality gates
+
+Run any of these locally:
 
 ```bash
-# Chrome → chrome://extensions → Developer mode → "Load unpacked"
-# select the ./extension folder.
-# Then open the extension Options page and set:
-#   API base URL = your Vercel/localhost URL
-#   API key      = the EXTENSION_API_KEY value from .env.local
+npm run typecheck    # tsc --noEmit
+npm run lint         # next lint
+npm test             # vitest run (18 tests)
+npm run build        # next build
 ```
-
-See [docs/API.md](docs/API.md) and [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Design
 
@@ -110,3 +109,10 @@ inside `src/app/(app|public|auth)/` without also updating the prompt,
 so the design brief cannot silently drift from the code. Add
 `[skip-design-drift]` to a PR title or commit message to acknowledge
 intentional drift.
+
+## Docs
+
+- `docs/PROJECT_AUDIT_BASELINE.md` — current-state audit + findings
+- `docs/API.md` — API reference
+- `docs/DEPLOY.md` — deployment guide
+- `docs/MOBILE.md` — installable PWA + Capacitor wrapper
