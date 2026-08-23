@@ -56,9 +56,6 @@ Deployable to **Vercel** on a free tier.
 │   └── middleware.ts      Supabase session refresh
 ├── public/                icon, manifest.webmanifest, sw.js, offline assets
 ├── supabase/              migrations, seed
-├── extension/             Browser extension (MV3)
-├── mobile/                Capacitor scaffold
-├── desktop/               Electron wrapper
 ├── docs/                  Audit, deploy, mobile, desktop notes
 ├── vercel.json            Deploy config
 ├── tailwind.config.ts     Design tokens (brand / navy / teal / gold)
