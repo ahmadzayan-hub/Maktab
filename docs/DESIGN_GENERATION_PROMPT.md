@@ -111,11 +111,25 @@ visible.
 The one screen a user opens 20× a day. Density comparable to Notion
 Calendar or Linear inbox.
 
-- **Hero KPI row** (4 cards): current week's tasks due, unread
-  announcements, current course GPA trend, streak (days studied). Each
-  card is glass-surface, 20 px radius, with a tiny sparkline + one-line
-  insight ("You're 12% ahead of last week"). Colour-code: brand-blue,
-  amber, teal-emerald, gold.
+- **Learning Command Center** (first panel, directly under the hero):
+  the decision comes before the decoration. Three parts, in this order:
+  *Needs you* (open and overdue deadlines, nearest first), *Study plan*
+  (blocks allocated to the time the learner selects: 30 / 60 / 90 /
+  120 minutes), and *Exam readiness* (one row per course, weakest first,
+  each with the drivers that produced its score). Rendered by
+  `src/components/learning/StudyCommandCenter.tsx` from
+  `src/lib/learning/readiness.ts`.
+- **Every number on this screen is derived from the learner's own data.**
+  Readiness comes from graded performance, course coverage and deadline
+  proximity; a course with no graded work reports "No graded work yet"
+  rather than a figure, and overall readiness averages only the courses
+  that have evidence. Do not add a streak, a percentage, or any other
+  indicator that the data cannot support, and do not render a progress
+  ring for a plain count: a ring promises progress toward a total.
+- **Stat cards row** (4 cards): active courses, upcoming deadlines,
+  announcements, graded items. Counts only, each linking to its own
+  section. Glass-surface, 20 px radius, colour-coded brand-blue, amber,
+  purple, emerald.
 - **Next class** panel (large, prominent): course name, time, room or
   Zoom link, one-tap "Prep in 5 min" button that opens the study pack
   for that lecture.

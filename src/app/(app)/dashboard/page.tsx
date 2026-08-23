@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/Badge";
 import {
   BookOpen, Clock, Megaphone, BarChart3, Bot, Package, Newspaper,
   AlertTriangle, CheckCircle, TrendingUp, Zap, ArrowRight, Mic,
-  Users, Trophy, Star, Flame, Target, Brain,
+  Users, Trophy, Star, Target, Brain,
 } from "lucide-react";
 import { format } from "date-fns";
+import { StudyCommandCenter } from "@/components/learning/StudyCommandCenter";
 
 interface Course { id: string; name: string; code: string; progress: number; instructor: string; }
 interface Deadline { id: string; title: string; course_name: string; due_date: string; risk: "safe"|"due_soon"|"at_risk"|"overdue"; type: string; }
@@ -48,38 +49,25 @@ function AnimatedNumber({ value, suffix = "" }: { value: number | string; suffix
   return <>{typeof value === "string" && isNaN(num) ? value : display}{suffix}</>;
 }
 
-/* ── SVG ring progress ── */
-function RingProgress({ value, size = 56, stroke = 5, color = "#3b82f6" }: { value: number; size?: number; stroke?: number; color?: string }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const dash = (value / 100) * circ;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(148,163,184,0.2)" strokeWidth={stroke} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
-        style={{ transition: "stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)" }}
-      />
-    </svg>
-  );
-}
-
 export default function DashboardPage() {
   const { t } = useI18n();
   const [courses, setCourses]           = useState<Course[]>([]);
   const [deadlines, setDeadlines]       = useState<Deadline[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [gradedCount, setGradedCount]   = useState(0);
   const [loading, setLoading]           = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [cRes, dRes, aRes] = await Promise.all([
+        const [cRes, dRes, aRes, gRes] = await Promise.all([
           fetch("/api/courses"), fetch("/api/deadlines?view=week"), fetch("/api/announcements?limit=5"),
+          fetch("/api/grades"),
         ]);
         if (cRes.ok) setCourses(await cRes.json());
         if (dRes.ok) setDeadlines(await dRes.json());
         if (aRes.ok) setAnnouncements(await aRes.json());
+        if (gRes.ok) setGradedCount(((await gRes.json()) as unknown[]).length);
       } finally { setLoading(false); }
     }
     load();
@@ -137,9 +125,9 @@ export default function DashboardPage() {
     },
     {
       icon: <BarChart3 size={22} />,
-      label: "Exam Readiness",
-      value: 72,
-      suffix: "%",
+      label: "Graded items",
+      value: loading ? "·" : gradedCount,
+      suffix: "",
       href: "/grades",
       color: "from-emerald-500 to-teal-500",
       glow: "stat-card-emerald",
@@ -185,7 +173,7 @@ export default function DashboardPage() {
               Sara Al-Mansouri
             </h1>
             <p className="text-white/75 text-sm mb-5 leading-relaxed max-w-md">
-              MBA Year 2 · 5 active courses · Your AI tutor is ready to help you excel today.
+              {courses.length} active course{courses.length === 1 ? "" : "s"} · your plan for today is below.
             </p>
             <div className="flex flex-wrap gap-2.5">
               <Link href="/tutor">
@@ -204,28 +192,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Stats mini-ring */}
-          <div className="flex gap-4 sm:flex-col sm:gap-3">
-            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
-              <div className="relative">
-                <RingProgress value={72} size={44} stroke={4} color="#34d399" />
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">72%</span>
-              </div>
-              <div>
-                <p className="text-xs text-white/60">Readiness</p>
-                <p className="text-sm font-bold text-white">Exam Ready</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/20">
-              <Flame size={24} className="text-orange-300 animate-pulse-soft" />
-              <div>
-                <p className="text-xs text-white/60">Study Streak</p>
-                <p className="text-sm font-bold text-white">14 days 🔥</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Decision first: what is due, what needs you, what to study now. */}
+      <StudyCommandCenter />
 
       {/* ── 3D Stat cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -242,7 +213,6 @@ export default function DashboardPage() {
                 <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-md`}>
                   {s.icon}
                 </div>
-                <RingProgress value={typeof s.value === "number" ? Math.min(s.value * 10, 100) : 40} size={36} stroke={3.5} color={s.ring} />
               </div>
               <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {!loading && typeof s.value === "number"
