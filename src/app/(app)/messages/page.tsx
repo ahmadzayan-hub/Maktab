@@ -229,7 +229,7 @@ export default function MessagesPage() {
                       value={form.course_id}
                       onChange={e => setForm(f => ({ ...f, course_id: e.target.value }))}
                     >
-                      <option value="">· Select course ·</option>
+                      <option value="">Select course</option>
                       {courses.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
@@ -323,7 +323,7 @@ export default function MessagesPage() {
                     </div>
                   </div>
                   <p className="text-xs text-brand-700 dark:text-brand-400 mb-2">
-                    Click a language to load the suggestion into the reply box below · you can edit before sending.
+                    Click a language to load the suggestion into the reply box below, and you can edit before sending.
                   </p>
                 </div>
               )}

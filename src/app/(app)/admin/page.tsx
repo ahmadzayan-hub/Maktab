@@ -96,7 +96,7 @@ export default function AdminPage() {
               {users.map(u => (
                 <tr key={u.id}>
                   <td>
-                    <p className="font-medium text-slate-800 dark:text-slate-200">{u.display_name || "·"}</p>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">{u.display_name || "–"}</p>
                     <p className="text-xs text-slate-400">{u.email}</p>
                   </td>
                   <td><Badge color={u.role === "admin" ? "red" : u.role === "instructor" ? "purple" : "gray"}>{u.role}</Badge></td>

@@ -48,7 +48,7 @@ function calcPercentage(score: number | null, max: number) {
 }
 
 function letterGrade(pct: number | null): string {
-  if (pct === null) return "·";
+  if (pct === null) return "–";
   if (pct >= 90) return "A";
   if (pct >= 80) return "B";
   if (pct >= 70) return "C";
@@ -176,7 +176,7 @@ export default function GradesPage() {
                     <td><Badge color="gray">{g.category}</Badge></td>
                     <td className="text-slate-600 dark:text-slate-300">{g.item_name}</td>
                     <td className="text-end">
-                      {g.score !== null ? `${g.score}/${g.max_score}` : <span className="text-slate-300">·</span>}
+                      {g.score !== null ? `${g.score}/${g.max_score}` : <span className="text-slate-300">–</span>}
                     </td>
                     <td className="text-end text-slate-500">{g.weight}%</td>
                     <td className="text-end">

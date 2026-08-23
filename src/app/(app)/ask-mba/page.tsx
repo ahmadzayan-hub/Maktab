@@ -40,6 +40,7 @@ export default function AskMBAPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{t("ask_mba.title")}</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Powered by your full academic data</p>
         </div>
+        <span className="badge-blue text-xs ms-auto">{t("label.ai")}</span>
       </div>
 
       {/* Input */}

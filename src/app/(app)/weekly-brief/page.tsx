@@ -59,7 +59,7 @@ export default function WeeklyBriefPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("weeklyBrief.title")}</h1>
           {brief && (
             <p className="text-sm text-slate-500 mt-1">
-              {format(new Date(brief.week_start), "MMM d")} · {format(new Date(brief.week_end), "MMM d, yyyy")}
+              {format(new Date(brief.week_start), "MMM d")} to {format(new Date(brief.week_end), "MMM d, yyyy")}
             </p>
           )}
         </div>

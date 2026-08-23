@@ -127,8 +127,8 @@ function SubscriptionContent() {
           <div>
             <p className="font-semibold text-amber-900 dark:text-amber-300 text-sm mb-1">About the Free Phase</p>
             <p className="text-sm text-amber-800 dark:text-amber-400 leading-relaxed">
-              Maktab is currently in its launch phase. All features · including AI Tutor, Study Packs,
-              Lecture Transcription, Group Workspace, and Achievements · are available at no cost.
+              Maktab is currently in its launch phase. All features, including AI Tutor, Study Packs,
+              Lecture Transcription, Group Workspace and Achievements, are available at no cost.
               Subscription tiers may be introduced in a future phase to support ongoing development.
             </p>
           </div>

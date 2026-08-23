@@ -101,6 +101,27 @@ cards lifts 2 px + subtle scale 1.01 + shadow bloom.
   their orientation (no mirrored search glass).
 - All copy comes in `{ en, ar }` pairs.
 
+### Punctuation: pick the mark for the job
+
+This codebase does not use em dashes. That rule is enforced on the
+dictionary, but it must be applied by rewriting the sentence, never by
+swapping one character for another. A blind replacement produced real
+breakage that had to be repaired: a parenthetical pair became two
+separators, a select placeholder read `· Select course ·`, a date range
+read `Aug 17 · Aug 23`, and definitions in the lecture summary read
+`**Competitive Rivalry** · Intensity of competition`.
+
+Use the mark the sentence actually needs:
+
+| Intent | Use |
+|---|---|
+| Parenthetical aside | commas, or parentheses |
+| Two joined clauses | a comma, or split the sentence |
+| Term followed by its definition | a colon |
+| A range (dates, numbers) | `to`, or an en dash `–` |
+| "No value yet" in a table cell | an en dash `–`, never `·` |
+| Genuine separator between peer items | `·` |
+
 ## 6 · Priority screens (build in this order)
 
 Design each as a full page, with the **shared app chrome** (§7) always
