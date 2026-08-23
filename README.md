@@ -1,5 +1,16 @@
 # Maktab · مكتب
 
+## Product Authority
+
+| | |
+|---|---|
+| **Primary User** | MBA student / executive learner |
+| **Job To Be Done** | One calm workspace for study, deadlines, files, grades and AI tutoring |
+| **System of Record** | Learner profile, courses, study plan, mastery |
+| **System of Intelligence** | Cited answers, readiness scores, grade forecasts, weekly brief |
+| **Explicit Non-Goals** | University LMS (for now) · hosting ZAIan Studio clients (→ PromptOps) · prompt tooling |
+
+
 > **Your MBA, on one desk.**
 
 Maktab is a bilingual (English + Arabic) study platform for MBA students,
