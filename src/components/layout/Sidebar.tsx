@@ -116,7 +116,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Sara Al-Mansouri</p>
-            <p className="text-[10px] text-slate-400 truncate">MBA Year 2 · Free Access</p>
+            <p className="text-[10px] text-slate-400 truncate">Free Access</p>
           </div>
         </div>
       </div>
