@@ -168,7 +168,7 @@ export default function CourseDetailPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { icon: <Clock size={18} className="text-amber-600" />, label: "Deadlines", value: upcomingDeadlines.length, sub: atRiskCount > 0 ? `${atRiskCount} at risk` : "all good", href: "#deadlines", bg: "bg-amber-50 dark:bg-amber-950/30" },
-          { icon: <BarChart3 size={18} className="text-emerald-600" />, label: "Current Grade", value: currentGrade !== null ? `${currentGrade}%` : "·", sub: grades.length > 0 ? `${grades.length} entries` : "No grades yet", href: "#grades", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { icon: <BarChart3 size={18} className="text-emerald-600" />, label: "Current Grade", value: currentGrade !== null ? `${currentGrade}%` : "–", sub: grades.length > 0 ? `${grades.length} entries` : "No grades yet", href: "#grades", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
           { icon: <Package size={18} className="text-purple-600" />, label: "Study Packs", value: packs.length, sub: packs.filter(p => p.status === "ready").length + " ready", href: "/study-packs", bg: "bg-purple-50 dark:bg-purple-950/30" },
           { icon: <FolderOpen size={18} className="text-blue-600" />, label: "Files", value: files.length, sub: files.filter(f => f.processing_status === "ready").length + " processed", href: "/files", bg: "bg-blue-50 dark:bg-blue-950/30" },
         ].map(s => (
@@ -194,14 +194,14 @@ export default function CourseDetailPage() {
           {atRiskCount > 0 && (
             <Link href="/timeline">
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:underline">
-                <AlertTriangle size={14} /> {atRiskCount} deadline(s) at risk · review your timeline now
+                <AlertTriangle size={14} /> {atRiskCount} deadline(s) at risk, review your timeline now
               </div>
             </Link>
           )}
           {packs.filter(p => p.status === "ready").length > 0 && (
             <Link href="/study-packs">
               <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:underline">
-                <Package size={14} /> Study pack ready · review key takeaways and flashcards
+                <Package size={14} /> Study pack ready, review key takeaways and flashcards
               </div>
             </Link>
           )}
@@ -215,7 +215,7 @@ export default function CourseDetailPage() {
           {currentGrade !== null && currentGrade < 75 && (
             <Link href="/grades">
               <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:underline">
-                <BarChart3 size={14} /> Grade at risk ({currentGrade}%) · use the grade planner
+                <BarChart3 size={14} /> Grade at risk ({currentGrade}%), use the grade planner
               </div>
             </Link>
           )}
