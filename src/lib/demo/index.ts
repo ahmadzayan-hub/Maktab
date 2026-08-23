@@ -13,10 +13,18 @@ export const DEMO_USER = {
   created_at: "2025-09-01T00:00:00.000Z",
 };
 
-// ─── Date helpers (relative to 2026-05-06) ────────────────────────────────────
-const BASE = new Date("2026-05-06T09:00:00.000Z");
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+// Anchored to today, not to a fixed date. A demo pinned to a past day shows
+// every deadline as months overdue, which reads as a broken product rather
+// than a sample. Anchoring to now keeps the sample honest whenever it is
+// opened: the same relative story, always current.
+const BASE = (() => {
+  const base = new Date();
+  base.setUTCHours(9, 0, 0, 0);
+  return base;
+})();
 const d = (days: number, time = "T09:00:00.000Z") =>
-  new Date(BASE.getTime() + days * 86_400_000).toISOString().replace("T09:00:00.000Z", time);
+  new Date(BASE.getTime() + days * 86_400_000).toISOString().replace(/T09:00:00\.000Z$/, time);
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
