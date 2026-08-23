@@ -2,9 +2,9 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { env, assertSupabaseEnv } from "@/lib/env";
 
-export function getServerSupabase() {
+export async function getServerSupabase() {
   assertSupabaseEnv();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   return createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
     cookies: {
       get(name: string) {
