@@ -120,7 +120,8 @@ intentional drift.
 
 ## Docs
 
-- `docs/PROJECT_AUDIT_BASELINE.md` — current-state audit + findings
+- `docs/PRODUCT_AUTHORITY.md` — what Maktab is authoritative for
 - `docs/API.md` — API reference
 - `docs/DEPLOY.md` — deployment guide
-- `docs/MOBILE.md` — installable PWA + Capacitor wrapper
+- `docs/ASSESSMENT.md` — current-state assessment + findings
+- `docs/DESIGN_GENERATION_PROMPT.md` — design-generation prompt
