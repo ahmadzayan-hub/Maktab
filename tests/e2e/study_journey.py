@@ -38,22 +38,22 @@ with sync_playwright() as p:
  page.get_by_label('اختار مادة',exact=True).select_option('finance');page.wait_for_timeout(200);assert page.get_by_label('ملاحظاتك',exact=True).input_value()==''
  page.get_by_label('اختار مادة',exact=True).select_option('strategy');page.wait_for_timeout(200);assert page.get_by_label('ملاحظاتك',exact=True).input_value()=='ملاحظة خاصة بمادة الاستراتيجية'
  page.screenshot(path=str(out/'study-ar-desktop.png'),full_page=True)
- page.goto(BASE+'/onboarding');page.get_by_label('اسمك (اختياري)').fill('طالب اختبار');page.get_by_role('button',name='احفظ وأضف مادة').click();page.get_by_role('alert').wait_for();assert '/onboarding' in page.url;assert page.get_by_label('اسمك (اختياري)').input_value()=='طالب اختبار'
+ page.goto(BASE+'/onboarding');page.get_by_label('اسمك (اختياري)').fill('طالب اختبار');page.get_by_role('button',name='احفظ وأضف مادة').click();page.locator('main').get_by_role('alert').wait_for();assert '/onboarding' in page.url;assert page.get_by_label('اسمك (اختياري)').input_value()=='طالب اختبار'
  page.set_viewport_size({'width':390,'height':844});page.screenshot(path=str(out/'onboarding-ar-mobile-error.png'),full_page=True)
- assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+ assert page.evaluate('document.documentElement.scrollWidth') <= page.viewport_size['width']
  state['save_ok']=True;page.get_by_role('button',name='احفظ وأضف مادة').click();page.wait_for_url('**/courses?add=1');assert sum(r==['POST','profile/onboarding'] for r in state['requests'])==2
  page.locator('#course-name').fill('Finance');page.locator('form button[type=submit]').click();page.wait_for_url('**/study?course_id=finance&minutes=15');assert sum(r==['POST','courses'] for r in state['requests'])==1
  page.goto(BASE+'/lecture');page.get_by_role('heading',name='نص المحاضرة').wait_for();page.evaluate('window.SpeechRecognition = undefined; window.webkitSpeechRecognition = undefined;')
- page.get_by_role('button',name='ابدأ تفريغ الميكروفون').click();page.get_by_role('alert').wait_for();assert page.get_by_label('نص المحاضرة',exact=True).input_value()==''
+ page.get_by_role('button',name='ابدأ تفريغ الميكروفون').click();page.locator('main').get_by_role('alert').wait_for();assert page.get_by_label('نص المحاضرة',exact=True).input_value()==''
  page.get_by_role('button',name='اعرض مثالًا').click();assert 'مثال' in page.get_by_label('نص المحاضرة',exact=True).input_value();page.get_by_role('button',name='امسح المثال').click()
  data={'format':'hader-session','version':1,'id':'t','title':'محاضرة مالية','createdAt':'2026-10-23T10:00:00Z','segments':[{'id':'s','text':'DCF','offsetMs':123000,'source':'live'},{'id':'n','text':'ملاحظة','offsetMs':None,'source':'import'}]}
  page.locator('#hader-import').set_input_files({'name':'session.json','mimeType':'application/json','buffer':json.dumps(data).encode()});page.wait_for_timeout(300);assert '[00:02:03] [live] DCF' in page.locator('#lecture-transcript').input_value();assert '[untimed]' in page.locator('#lecture-transcript').input_value()
  page.screenshot(path=str(out/'lecture-ar-mobile-import.png'),full_page=True)
- page.goto(BASE+'/dashboard');page.get_by_role('link',name='ابدأ المذاكرة',exact=True).wait_for();assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth');page.screenshot(path=str(out/'today-ar-mobile.png'),full_page=True)
+ page.goto(BASE+'/dashboard');page.get_by_role('link',name='ابدأ المذاكرة',exact=True).wait_for();assert page.evaluate('document.documentElement.scrollWidth') <= page.viewport_size['width'];page.screenshot(path=str(out/'today-ar-mobile.png'),full_page=True)
  page.get_by_role('button',name='التنقل',exact=True).click();assert page.get_by_role('navigation',name='التنقل').locator('a').count()==4
  assert page.get_by_role('navigation',name='التنقل').inner_text().splitlines()==['اليوم','موادي','المذاكرة','مواعيدي']
  page.keyboard.press('Escape'); assert page.get_by_role('navigation',name='التنقل').count()==0
- state['fail_courses']=True;page.goto(BASE+'/dashboard');page.get_by_role('alert').wait_for();assert page.get_by_role('link',name='أضف أول مادة').count()==0
+ state['fail_courses']=True;page.goto(BASE+'/dashboard');page.locator('main').get_by_role('alert').wait_for();assert page.get_by_role('link',name='أضف أول مادة').count()==0
  browser.close();assert not errors,errors
  out.joinpath('journey-results.json').write_text(json.dumps({'passed':True,'page_errors':errors,'request_count':len(state['requests']),'scenarios':['no grades -> focused session','Arabic mobile overflow','course-scoped tab draft restore','failed onboarding retains entries','explicit sample only on click','Hader timestamp/provenance import','load failure distinct from empty']},ensure_ascii=False,indent=2))
  print('PASS: Arabic desktop/mobile, save failure, no-grade session, isolated drafts, honest lecture, explicit Hader import')
