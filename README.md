@@ -8,7 +8,9 @@
 
 Courses, deadlines, graded work and study time belong in one place. Maktab's core workflow connects them:
 
-**Courses and deadlines → graded work → course readiness → a realistic study plan → study sessions.**
+**One course → a useful study session → notes and practice.** Grades are optional for starting; recorded graded work can later inform readiness.
+
+The main navigation has four destinations: **Today, My courses, Study, My deadlines**. Course pages retain contextual access to files, practice, tutoring, grades and advanced tools. The first-session flow and its boundaries are documented in [Student journey](docs/STUDENT_JOURNEY.md).
 
 Readiness is meant to come from actual graded work. A course without graded work should show that evidence is missing, not a fabricated score. The learner chooses the plan; generated material remains a study aid, not an authoritative assessment.
 

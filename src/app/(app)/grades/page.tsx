@@ -1,4 +1,5 @@
 "use client";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -67,6 +68,7 @@ export default function GradesPage() {
   const [selectedCourse, setSelectedCourse] = useState("all");
 
   useEffect(() => {
+    if (selectedCourseId()) setSelectedCourse(selectedCourseId());
     async function load() {
       const [gRes, cRes] = await Promise.all([fetch("/api/grades"), fetch("/api/courses")]);
       if (gRes.ok) setGrades(await gRes.json());

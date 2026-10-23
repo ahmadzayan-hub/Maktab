@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { CourseTools } from "@/components/learning/CourseTools";
+import { useI18n } from "@/lib/i18n/I18nProvider";
+import { journeyCopy } from "@/lib/journey/copy";
+import { courseHref } from "@/lib/journey/navigation";
 import { Progress } from "@/components/ui/Progress";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +55,9 @@ function bytes(n: number) {
 }
 
 export default function CourseDetailPage() {
+  const { locale } = useI18n();
+  const copy = journeyCopy[locale];
+  const tr = (en: string, ar: string) => locale === "ar" ? ar : en;
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
@@ -63,6 +70,8 @@ export default function CourseDetailPage() {
   const [activeTab, setActiveTab] = useState<"overview"|"files"|"study"|"grades"|"deadlines">("overview");
 
   useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab") || window.location.hash.slice(1);
+    if (["overview", "files", "study", "grades", "deadlines"].includes(tab || "")) setActiveTab(tab as typeof activeTab);
     async function load() {
       try {
         const [cRes, dRes, aRes, gRes, pRes, fRes] = await Promise.all([
@@ -97,7 +106,7 @@ export default function CourseDetailPage() {
   if (!course) return (
     <div className="text-center py-20">
       <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-      <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">Course not found</h2>
+      <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">{tr("Course not found", "المادة غير موجودة")}</h2>
       <Button variant="secondary" onClick={() => router.push("/courses")}>
         <ArrowLeft size={15} /> Back to Courses
       </Button>
@@ -114,11 +123,11 @@ export default function CourseDetailPage() {
   const atRiskCount = upcomingDeadlines.filter(d => d.risk === "at_risk" || d.risk === "overdue").length;
 
   const tabs = [
-    { key: "overview", label: "Overview", count: null },
-    { key: "files", label: "Files", count: files.length },
-    { key: "study", label: "Study Packs", count: packs.length },
-    { key: "grades", label: "Grades", count: grades.length },
-    { key: "deadlines", label: "Deadlines", count: upcomingDeadlines.length },
+    { key: "overview", label: tr("Overview", "نظرة عامة"), count: null },
+    { key: "files", label: tr("Files", "الملفات"), count: files.length },
+    { key: "study", label: tr("Study Packs", "حزم المذاكرة"), count: packs.length },
+    { key: "grades", label: tr("Grades", "الدرجات"), count: grades.length },
+    { key: "deadlines", label: tr("Deadlines", "المواعيد"), count: upcomingDeadlines.length },
   ] as const;
 
   const accentColor = course.color ?? "#6366f1";
@@ -131,11 +140,17 @@ export default function CourseDetailPage() {
           <ArrowLeft size={18} />
         </button>
         <nav className="text-sm text-slate-400">
-          <Link href="/courses" className="hover:text-slate-600">Courses</Link>
+          <Link href="/courses" className="hover:text-slate-600">{tr("Courses", "المواد")}</Link>
           <span className="mx-2">/</span>
           <span className="text-slate-700 dark:text-slate-300">{course.name}</span>
         </nav>
       </div>
+
+      <section className="card space-y-4">
+        <h2 className="text-lg font-semibold">{copy.next}</h2><p>{copy.review}</p>
+        <Link href={courseHref("/study", id)} className="btn-primary inline-flex min-h-11">{copy.start}</Link>
+        <CourseTools courseId={id} />
+      </section>
 
       {/* Hero card */}
       <div className="rounded-2xl p-6 text-white" style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}>
@@ -155,7 +170,7 @@ export default function CourseDetailPage() {
         {/* Progress bar */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/80">Course Progress</span>
+            <span className="text-white/80">{tr("Course Progress", "تغطية المادة")}</span>
             <span className="font-semibold">{course.progress}%</span>
           </div>
           <div className="h-2 bg-white/20 rounded-full">
@@ -167,60 +182,60 @@ export default function CourseDetailPage() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { icon: <Clock size={18} className="text-amber-600" />, label: "Deadlines", value: upcomingDeadlines.length, sub: atRiskCount > 0 ? `${atRiskCount} at risk` : "all good", href: "#deadlines", bg: "bg-amber-50 dark:bg-amber-950/30" },
-          { icon: <BarChart3 size={18} className="text-emerald-600" />, label: "Current Grade", value: currentGrade !== null ? `${currentGrade}%` : "–", sub: grades.length > 0 ? `${grades.length} entries` : "No grades yet", href: "#grades", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-          { icon: <Package size={18} className="text-purple-600" />, label: "Study Packs", value: packs.length, sub: packs.filter(p => p.status === "ready").length + " ready", href: "/study-packs", bg: "bg-purple-50 dark:bg-purple-950/30" },
-          { icon: <FolderOpen size={18} className="text-blue-600" />, label: "Files", value: files.length, sub: files.filter(f => f.processing_status === "ready").length + " processed", href: "/files", bg: "bg-blue-50 dark:bg-blue-950/30" },
+          { icon: <Clock size={18} className="text-amber-600" />, label: tr("Deadlines", "المواعيد"), value: upcomingDeadlines.length, sub: atRiskCount > 0 ? `${atRiskCount} at risk` : "all good", href: `/courses/${id}?tab=deadlines`, bg: "bg-amber-50 dark:bg-amber-950/30" },
+          { icon: <BarChart3 size={18} className="text-emerald-600" />, label: tr("Current Grade", "الدرجة الحالية"), value: currentGrade !== null ? `${currentGrade}%` : "–", sub: grades.length > 0 ? `${grades.length} entries` : "No grades yet", href: `/courses/${id}?tab=grades`, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+          { icon: <Package size={18} className="text-purple-600" />, label: tr("Study Packs", "حزم المذاكرة"), value: packs.length, sub: packs.filter(p => p.status === "ready").length + " ready", href: courseHref("/study-packs", id), bg: "bg-purple-50 dark:bg-purple-950/30" },
+          { icon: <FolderOpen size={18} className="text-blue-600" />, label: tr("Files", "الملفات"), value: files.length, sub: files.filter(f => f.processing_status === "ready").length + " processed", href: courseHref("/files", id), bg: "bg-blue-50 dark:bg-blue-950/30" },
         ].map(s => (
-          <Link key={s.label} href={s.href}>
+          <a key={s.label} href={s.href}>
             <div className={`card cursor-pointer hover:shadow-card-hover transition ${s.bg}`}>
               <div className="w-8 h-8 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm mb-3">{s.icon}</div>
               <p className="text-xl font-bold text-slate-900 dark:text-slate-100">{s.value}</p>
               <p className="text-xs font-medium text-slate-500">{s.label}</p>
               <p className="text-xs text-slate-400 mt-0.5">{s.sub}</p>
             </div>
-          </Link>
+          </a>
         ))}
       </div>
 
       {/* AI Recommended actions */}
-      <div className="card border-l-4" style={{ borderLeftColor: accentColor }}>
+      <div className="card border-s-4" style={{ borderInlineStartColor: accentColor }}>
         <div className="flex items-center gap-2 mb-3">
           <Bot size={16} className="text-teal-600" />
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Recommended Next Actions</h3>
-          <span className="badge-blue text-xs">AI</span>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">{tr("Recommended Next Actions", "خطوات مقترحة")}</h3>
+          <span className="badge-blue text-xs">{tr("From your records", "من بياناتك")}</span>
         </div>
         <div className="space-y-2">
           {atRiskCount > 0 && (
-            <Link href="/timeline">
+            <Link href={courseHref("/timeline", id)}>
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:underline">
                 <AlertTriangle size={14} /> {atRiskCount} deadline(s) at risk, review your timeline now
               </div>
             </Link>
           )}
           {packs.filter(p => p.status === "ready").length > 0 && (
-            <Link href="/study-packs">
+            <Link href={courseHref("/study-packs", id)}>
               <div className="flex items-center gap-2 text-sm text-purple-600 dark:text-purple-400 hover:underline">
                 <Package size={14} /> Study pack ready, review key takeaways and flashcards
               </div>
             </Link>
           )}
           {files.filter(f => f.processing_status === "ready").length > 0 && (
-            <Link href="/tutor">
+            <Link href={courseHref("/tutor", id)}>
               <div className="flex items-center gap-2 text-sm text-teal-600 dark:text-teal-400 hover:underline">
                 <Bot size={14} /> Ask your AI tutor questions about {course.name}
               </div>
             </Link>
           )}
           {currentGrade !== null && currentGrade < 75 && (
-            <Link href="/grades">
+            <Link href={courseHref("/grades", id)}>
               <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 hover:underline">
                 <BarChart3 size={14} /> Grade at risk ({currentGrade}%), use the grade planner
               </div>
             </Link>
           )}
           {atRiskCount === 0 && packs.length === 0 && (
-            <p className="text-sm text-slate-500">Upload lecture files to get started with AI study tools.</p>
+            <p className="text-sm text-slate-500">{tr("Upload lecture files to get started with AI study tools.", "أضف ملفات المادة للرجوع إليها. التوليد الذكي يحتاج مواد مفهرسة ومزودًا مهيأً.")}</p>
           )}
         </div>
       </div>
@@ -250,10 +265,10 @@ export default function CourseDetailPage() {
               <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Megaphone size={16} /> Announcements
               </h3>
-              <Link href="/announcements" className="text-xs text-brand-600 hover:underline">View all →</Link>
+              <Link href={courseHref("/announcements", id)} className="text-xs text-brand-600 hover:underline">{tr("View all →", "عرض الكل")}</Link>
             </div>
             {announcements.length === 0 ? (
-              <p className="text-sm text-slate-400">No announcements for this course.</p>
+              <p className="text-sm text-slate-400">{tr("No announcements for this course.", "لا توجد إعلانات لهذه المادة.")}</p>
             ) : (
               <div className="space-y-3">
                 {announcements.slice(0, 3).map(a => (
@@ -278,10 +293,10 @@ export default function CourseDetailPage() {
               <h3 className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Clock size={16} /> Upcoming Deadlines
               </h3>
-              <Link href="/timeline" className="text-xs text-brand-600 hover:underline">View all →</Link>
+              <Link href={courseHref("/timeline", id)} className="text-xs text-brand-600 hover:underline">{tr("View all →", "عرض الكل")}</Link>
             </div>
             {upcomingDeadlines.length === 0 ? (
-              <p className="text-sm text-slate-400">No upcoming deadlines.</p>
+              <p className="text-sm text-slate-400">{tr("No upcoming deadlines.", "لا توجد مواعيد قادمة.")}</p>
             ) : (
               <div className="space-y-2.5">
                 {upcomingDeadlines.slice(0, 4).map(d => (
@@ -314,8 +329,8 @@ export default function CourseDetailPage() {
           {files.length === 0 ? (
             <EmptyState
               icon={<FolderOpen />}
-              title="No files for this course"
-              action={{ label: "Upload files", onClick: () => router.push("/files") }}
+              title={tr("No files for this course", "لا توجد ملفات لهذه المادة")}
+              action={{ label: tr("Upload files", "أضف ملفًا"), onClick: () => router.push(courseHref("/files", id)) }}
             />
           ) : (
             files.map(f => (
@@ -334,7 +349,7 @@ export default function CourseDetailPage() {
             ))
           )}
           <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => router.push("/files")}>
+            <Button variant="secondary" onClick={() => router.push(courseHref("/files", id))}>
               <FolderOpen size={15} /> Manage all files
             </Button>
           </div>
@@ -347,12 +362,12 @@ export default function CourseDetailPage() {
           {packs.length === 0 ? (
             <EmptyState
               icon={<Package />}
-              title="No study packs yet"
-              action={{ label: "Generate study pack", onClick: () => router.push("/study-packs") }}
+              title={tr("No study packs yet", "لا توجد حزم مذاكرة بعد")}
+              action={{ label: tr("Generate study pack", "إنشاء حزمة مذاكرة"), onClick: () => router.push(courseHref("/study-packs", id)) }}
             />
           ) : (
             packs.map(p => (
-              <Link key={p.id} href="/study-packs">
+              <Link key={p.id} href={courseHref("/study-packs", id)}>
                 <div className="card-hover">
                   <div className="flex items-center gap-3 mb-2">
                     <Package size={16} className="text-purple-600" />
@@ -365,9 +380,9 @@ export default function CourseDetailPage() {
             ))
           )}
           <div className="flex gap-3">
-            <Link href="/study-packs"><Button variant="secondary"><Package size={15} /> All Study Packs</Button></Link>
-            <Link href="/flashcards"><Button variant="secondary"><Zap size={15} /> Flashcards</Button></Link>
-            <Link href="/quizzes"><Button variant="secondary"><ClipboardList size={15} /> Quizzes</Button></Link>
+            <Link href={courseHref("/study-packs", id)}><Button variant="secondary"><Package size={15} /> All Study Packs</Button></Link>
+            <Link href={courseHref("/flashcards", id)}><Button variant="secondary"><Zap size={15} /> Flashcards</Button></Link>
+            <Link href={courseHref("/quizzes", id)}><Button variant="secondary"><ClipboardList size={15} /> Quizzes</Button></Link>
           </div>
         </div>
       )}
@@ -377,7 +392,7 @@ export default function CourseDetailPage() {
         <div className="space-y-4">
           {currentGrade !== null && (
             <div className="card bg-emerald-50 dark:bg-emerald-950/30">
-              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Weighted average grade</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">{tr("Weighted average grade", "متوسط الدرجات المرجح")}</p>
               <p className="text-4xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">{currentGrade}%</p>
               <p className="text-xs text-slate-500 mt-1">Based on {gradedItems.length} graded item(s) with {totalWeight}% weight recorded</p>
             </div>
@@ -385,14 +400,14 @@ export default function CourseDetailPage() {
           {grades.length === 0 ? (
             <EmptyState
               icon={<BarChart3 />}
-              title="No grades recorded yet"
-              action={{ label: "Add grade", onClick: () => router.push("/grades") }}
+              title={tr("No grades recorded yet", "لا توجد درجات مسجلة")}
+              action={{ label: tr("Add grade", "أضف درجة"), onClick: () => router.push(courseHref("/grades", id)) }}
             />
           ) : (
             <div className="card overflow-hidden p-0">
               <table className="data-table">
                 <thead>
-                  <tr><th>Item</th><th>Category</th><th className="text-end">Score</th><th className="text-end">Weight</th></tr>
+                  <tr><th>{tr("Item", "العمل")}</th><th>{tr("Category", "الفئة")}</th><th className="text-end">{tr("Score", "الدرجة")}</th><th className="text-end">{tr("Weight", "الوزن")}</th></tr>
                 </thead>
                 <tbody>
                   {grades.map(g => {
@@ -406,7 +421,7 @@ export default function CourseDetailPage() {
                             <span className={`font-semibold ${pct >= 80 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-red-600"}`}>
                               {g.score}/{g.max_score} ({pct}%)
                             </span>
-                          ) : <span className="text-slate-300">Pending</span>}
+                          ) : <span className="text-slate-300">{tr("Pending", "لم يصحح بعد")}</span>}
                         </td>
                         <td className="text-end text-slate-500">{g.weight}%</td>
                       </tr>
@@ -423,7 +438,7 @@ export default function CourseDetailPage() {
       {activeTab === "deadlines" && (
         <div className="space-y-3">
           {upcomingDeadlines.length === 0 ? (
-            <EmptyState icon={<Calendar />} title="No deadlines for this course" />
+            <EmptyState icon={<Calendar />} title={tr("No deadlines for this course", "لا توجد مواعيد لهذه المادة")} />
           ) : (
             upcomingDeadlines.map(d => (
               <div key={d.id} className="card flex items-center gap-4">
@@ -442,7 +457,7 @@ export default function CourseDetailPage() {
             ))
           )}
           <div className="flex justify-end">
-            <Link href="/timeline"><Button variant="secondary"><Clock size={15} /> View full timeline</Button></Link>
+            <Link href={courseHref("/timeline", id)}><Button variant="secondary"><Clock size={15} /> View full timeline</Button></Link>
           </div>
         </div>
       )}
@@ -455,9 +470,9 @@ export default function CourseDetailPage() {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-slate-900 dark:text-slate-100">Ask your AI tutor about {course.name}</p>
-            <p className="text-sm text-slate-500 mt-0.5">Get cited answers from your uploaded lecture materials and study packs.</p>
+            <p className="text-sm text-slate-500 mt-0.5">{tr("Get cited answers from your uploaded lecture materials and study packs.", "اطرح أسئلة عن المواد التي اكتمل فهرستها. المساعد الذكي يحتاج مزودًا مهيأً.")}</p>
           </div>
-          <Link href="/tutor">
+          <Link href={courseHref("/tutor", id)}>
             <Button><Bot size={15} /> Open Tutor <ChevronRight size={14} /></Button>
           </Link>
         </div>

@@ -1,4 +1,5 @@
 "use client";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +26,7 @@ export default function TutorPage() {
   const [consentGiven, setConsentGiven] = useState(false);
 
   useEffect(() => {
+    setSelectedCourse(selectedCourseId());
     fetch("/api/tutor").then(r => r.ok && r.json()).then(d => d && setChats(d));
     fetch("/api/courses").then(r => r.ok && r.json()).then(d => d && setCourses(d));
   }, []);

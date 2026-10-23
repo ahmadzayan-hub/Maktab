@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Bound build worker memory on small CI and preview machines.
+  experimental: { cpus: 1 },
   env: {
     // On Vercel, VERCEL_URL is auto-set (without https://); fall back to localhost for dev
     NEXT_PUBLIC_APP_URL: process.env.VERCEL_URL

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
+import { selectedCourseId as readCourseContext } from "@/lib/journey/navigation";
 import { useDropzone } from "react-dropzone";
 import { Upload, File, FileText, FolderOpen, Trash2, Eye, Loader2, CheckCircle, AlertCircle, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -36,6 +37,7 @@ export default function FilesPage() {
 
   useEffect(() => {
     (async () => {
+      const context = readCourseContext(); if (context) { setSelectedCourseId(context); setFilterCourse(context); }
       setLoading(true);
       const [fr, cr] = await Promise.all([fetch("/api/files"), fetch("/api/courses")]);
       if (fr.ok) setFiles(await fr.json());

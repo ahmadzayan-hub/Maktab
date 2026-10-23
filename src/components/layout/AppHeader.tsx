@@ -3,6 +3,10 @@ import {
   Menu, Bell, Sun, Moon, Search, X, BookOpen, Clock, BarChart3, Package,
   FileText, Command, Sparkles, Globe,
 } from "lucide-react";
+import { useProfile } from "@/components/profile/ProfileProvider";
+import { initials } from "@/lib/journey/navigation";
+import { journeyCopy } from "@/lib/journey/copy";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -24,12 +28,13 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
+  const { profile } = useProfile();
+  const copy = journeyCopy[locale];
   const [dark, setDark] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const searchRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLInputElement>(null);
   const timeout    = useRef<NodeJS.Timeout | null>(null);
@@ -56,7 +61,7 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
         setShowSearch(true);
         setTimeout(() => inputRef.current?.focus(), 50);
       }
-      if (e.key === "Escape") { setShowSearch(false); setNotifOpen(false); }
+      if (e.key === "Escape") { setShowSearch(false); }
     }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -87,8 +92,8 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
         .forEach((g: any) => found.push({ type: "grade", label: g.item_name, subtitle: g.category, href: "/grades", icon: TYPE_ICON.grade }));
       packs.filter((p: any) => p.title?.toLowerCase().includes(lower)).slice(0, 2)
         .forEach((p: any) => found.push({ type: "pack", label: p.title, subtitle: "Study Pack", href: "/study-packs", icon: TYPE_ICON.pack }));
-      files.filter((f: any) => f.name?.toLowerCase().includes(lower)).slice(0, 2)
-        .forEach((f: any) => found.push({ type: "file", label: f.name, subtitle: "File", href: "/files", icon: TYPE_ICON.file }));
+      files.filter((f: any) => f.file_name?.toLowerCase().includes(lower)).slice(0, 2)
+        .forEach((f: any) => found.push({ type: "file", label: f.file_name, subtitle: "File", href: "/files", icon: TYPE_ICON.file }));
       setResults(found.slice(0, 8));
     } catch (err: any) {
       if (err?.name !== "AbortError") setResults([]);
@@ -111,14 +116,10 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("tz_theme", next ? "dark" : "light");
+    try { localStorage.setItem("tz_theme", next ? "dark" : "light"); } catch { /* Theme still works for this visit. */ }
   };
 
-  const NOTIFS = [
-    { id: 1, title: "Assignment due in 2 days", body: "Strategic Management · Case Study 3", time: "2h ago", dot: "bg-amber-400" },
-    { id: 2, title: "New AI study pack ready", body: "Finance Module 4 summary generated", time: "4h ago", dot: "bg-brand-400" },
-    { id: 3, title: "Grade posted", body: "Operations Management midterm: 88/100", time: "1d ago", dot: "bg-emerald-400" },
-  ];
+
 
   return (
     <header className="header-glass sticky top-0 z-30 h-16 flex items-center px-4 sm:px-6 gap-3 flex-shrink-0">
@@ -127,13 +128,13 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
       <button
         onClick={onMenuClick}
         className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:bg-white/60 dark:hover:bg-white/10 transition press"
-        aria-label="Open menu"
+        aria-label={copy.menu}
       >
         <Menu size={19} />
       </button>
 
       {title && (
-        <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-100 hidden sm:block mr-1">{title}</h1>
+        <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-100 hidden sm:block me-1">{title}</h1>
       )}
 
       {/* Search */}
@@ -146,7 +147,7 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
           )}
         >
           <Search className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="flex-1 text-left text-xs">Search anything…</span>
+          <span className="flex-1 text-start text-xs">Search anything…</span>
           <kbd className="hidden lg:flex items-center gap-0.5 text-[10px] bg-white/80 dark:bg-white/10 border border-slate-200/60 dark:border-white/10 rounded-lg px-1.5 py-0.5 text-slate-400">
             <Command className="w-2.5 h-2.5" />K
           </kbd>
@@ -198,7 +199,7 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
                   <li key={i}>
                     <button
                       onClick={() => navigate(r.href)}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/50 dark:hover:bg-white/5 text-left transition"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/50 dark:hover:bg-white/5 text-start transition"
                     >
                       <span className="flex-shrink-0">{r.icon}</span>
                       <div className="min-w-0 flex-1">
@@ -222,13 +223,13 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
               <div className="px-4 py-3">
                 <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wider font-semibold">Quick access</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Courses", "Deadlines", "Grades", "Files", "Tutor"].map(link => (
+                  {[{label: copy.courses, href: "/courses"}, {label: copy.deadlines, href: "/timeline"}, {label: copy.study, href: "/study"}].map(link => (
                     <button
-                      key={link}
-                      onClick={() => navigate(`/${link.toLowerCase()}`)}
+                      key={link.href}
+                      onClick={() => navigate(link.href)}
                       className="text-xs bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-xl px-2.5 py-1 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition font-medium"
                     >
-                      {link}
+                      {link.label}
                     </button>
                   ))}
                 </div>
@@ -244,8 +245,8 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
         {/* Language toggle */}
         <button
           onClick={() => setLocale(locale === "en" ? "ar" : "en")}
-          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:bg-white/60 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-300 transition press"
-          aria-label="Toggle language"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:bg-white/60 dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-300 transition press"
+          aria-label={t("lang.toggle")}
         >
           <Globe className="w-3.5 h-3.5" />
           {t("lang.toggle")}
@@ -263,59 +264,12 @@ export function AppHeader({ onMenuClick, title }: AppHeaderProps) {
           }
         </button>
 
-        {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:bg-white/60 dark:hover:bg-white/10 transition press relative"
-            aria-label="Notifications"
-          >
-            <Bell size={17} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse-soft" />
-          </button>
-
-          {notifOpen && (
-            <div
-              className="absolute top-full right-0 mt-2 w-80 rounded-3xl overflow-hidden shadow-float z-50 animate-scale-in border border-white/60 dark:border-white/10"
-              style={{ background: "var(--glass-bg)", backdropFilter: "blur(20px) saturate(1.8)" }}
-            >
-              <div className="px-4 py-3 border-b border-white/50 dark:border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Notifications</span>
-                  <span className="text-xs bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full px-1.5 py-0.5 font-bold">3</span>
-                </div>
-                <button onClick={() => setNotifOpen(false)} className="text-slate-400 hover:text-slate-600 transition">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="divide-y divide-white/30 dark:divide-white/5">
-                {NOTIFS.map(n => (
-                  <div key={n.id} className="px-4 py-3 hover:bg-white/40 dark:hover:bg-white/5 transition cursor-pointer">
-                    <div className="flex items-start gap-2.5">
-                      <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.dot}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{n.title}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{n.body}</p>
-                        <p className="text-[10px] text-slate-400 mt-1">{n.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="px-4 py-2.5 border-t border-white/30 dark:border-white/5">
-                <button className="w-full text-xs text-brand-600 dark:text-brand-400 font-semibold hover:underline">
-                  View all notifications
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <Link href="/announcements" className="min-h-11 min-w-11 flex items-center justify-center" aria-label={t("nav.announcements")}><Bell size={17} /></Link>
 
         {/* User avatar */}
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm cursor-pointer hover:shadow-glow transition press ml-0.5">
-          SA
-        </div>
+        <Link href="/settings" aria-label={copy.account} className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-sm cursor-pointer hover:shadow-glow transition press ms-0.5">
+          {initials(profile?.full_name)}
+        </Link>
       </div>
     </header>
   );
