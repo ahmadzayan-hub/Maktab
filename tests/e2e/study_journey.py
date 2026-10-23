@@ -49,7 +49,7 @@ with sync_playwright() as p:
  data={'format':'hader-session','version':1,'id':'t','title':'محاضرة مالية','createdAt':'2026-10-23T10:00:00Z','segments':[{'id':'s','text':'DCF','offsetMs':123000,'source':'live'},{'id':'n','text':'ملاحظة','offsetMs':None,'source':'import'}]}
  page.locator('#hader-import').set_input_files({'name':'session.json','mimeType':'application/json','buffer':json.dumps(data).encode()});page.wait_for_timeout(300);assert '[00:02:03] [live] DCF' in page.locator('#lecture-transcript').input_value();assert '[untimed]' in page.locator('#lecture-transcript').input_value()
  page.screenshot(path=str(out/'lecture-ar-mobile-import.png'),full_page=True)
- page.goto(BASE+'/dashboard');page.get_by_role('link',name='ابدأ المذاكرة',exact=True).wait_for();assert page.evaluate('document.documentElement.scrollWidth') <= page.viewport_size['width'];page.screenshot(path=str(out/'today-ar-mobile.png'),full_page=True)
+ page.goto(BASE+'/dashboard');page.get_by_role('link',name='ابدأ المذاكرة',exact=True).wait_for();assert page.evaluate('document.documentElement.scrollWidth') <= page.viewport_size['width'];assert page.locator('main').evaluate('(el) => getComputedStyle(el).opacity') == '1';assert page.locator('main > div').evaluate('(el) => getComputedStyle(el).opacity') == '1';page.screenshot(path=str(out/'today-ar-mobile.png'),full_page=True,animations='disabled')
  page.get_by_role('button',name='التنقل',exact=True).click();assert page.get_by_role('navigation',name='التنقل').locator('a').count()==4
  assert page.get_by_role('navigation',name='التنقل').inner_text().splitlines()==['اليوم','موادي','المذاكرة','مواعيدي']
  page.keyboard.press('Escape'); assert page.get_by_role('navigation',name='التنقل').count()==0
