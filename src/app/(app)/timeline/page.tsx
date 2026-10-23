@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { Calendar, Clock, AlertTriangle, CheckCircle, Plus, X } from "lucide-react";
 import { format, parseISO, isToday, isTomorrow, isThisWeek } from "date-fns";
@@ -34,9 +36,10 @@ export default function TimelinePage() {
 
   useEffect(() => {
     (async () => {
+      if (selectedCourseId()) setForm(prev => ({ ...prev, course_id: selectedCourseId() }));
       setLoading(true);
       const [dr, cr] = await Promise.all([fetch(`/api/deadlines?view=${view}`), fetch("/api/courses")]);
-      if (dr.ok) setDeadlines(await dr.json());
+      if (dr.ok) setDeadlines((await dr.json()).filter((d: Deadline) => !selectedCourseId() || d.course_id === selectedCourseId()));
       if (cr.ok) setCourses(await cr.json());
       setLoading(false);
     })();
@@ -97,9 +100,10 @@ export default function TimelinePage() {
 
   return (
     <div className="p-6 space-y-6" dir={dir}>
+      <div className="flex gap-4"><Link href="/calendar" className="min-h-11 text-brand-600">{t("nav.calendar")}</Link><Link href="/tasks" className="min-h-11 text-brand-600">{t("nav.tasks")}</Link></div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("timeline.title")}</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t("nav.timeline")}</h1>
           <p className="text-sm text-slate-500 mt-1">{t("timeline.subtitle")}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary">

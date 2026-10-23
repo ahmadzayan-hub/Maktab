@@ -1,4 +1,6 @@
 "use client";
+import { useRouter } from "next/navigation";
+import { journeyCopy } from "@/lib/journey/copy";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
@@ -18,8 +20,11 @@ interface Course {
 }
 
 export default function CoursesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const copy = journeyCopy[locale];
+  const router = useRouter();
   const toast = useToast();
+  const [loadError, setLoadError] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -30,12 +35,13 @@ export default function CoursesPage() {
   const [saving, setSaving] = useState(false);
 
   async function loadCourses() {
-    const res = await fetch("/api/courses");
-    if (res.ok) setCourses(await res.json());
-    setLoading(false);
+    setLoadError(false);
+    try { const res = await fetch("/api/courses"); if (!res.ok) throw new Error(); setCourses(await res.json()); }
+    catch { setLoadError(true); } finally { setLoading(false); }
+
   }
 
-  useEffect(() => { loadCourses(); }, []);
+  useEffect(() => { loadCourses(); if (new URLSearchParams(window.location.search).get("add") === "1") setAddOpen(true); }, []);
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,15 +50,15 @@ export default function CoursesPage() {
     const body = Object.fromEntries(fd.entries());
     const url = editCourse ? `/api/courses/${editCourse.id}` : "/api/courses";
     const method = editCourse ? "PUT" : "POST";
-    const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) {
+    try {
+      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error();
+      const saved = await res.json();
       toast("success", t(editCourse ? "course.updated" : "course.created"));
       setAddOpen(false); setEditCourse(null);
-      loadCourses();
-    } else {
-      toast("error", t("error.generic"));
-    }
-    setSaving(false);
+      if (!editCourse && saved.id && process.env.NEXT_PUBLIC_DEMO_MODE !== "true") router.push(`/study?course_id=${encodeURIComponent(saved.id)}&minutes=15`);
+      else await loadCourses();
+    } catch { toast("error", copy.saveError); } finally { setSaving(false); }
   }
 
   async function handleDelete() {
@@ -79,13 +85,14 @@ export default function CoursesPage() {
     return matchSearch && matchFilter;
   });
 
-  const CourseForm = ({ course }: { course?: Course | null }) => (
+  const renderCourseForm = (course?: Course | null) => (
     <form onSubmit={handleSave} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t("course.name")} *</label>
-          <input name="name" required defaultValue={course?.name} placeholder="e.g. Strategic Management" />
+          <label htmlFor="course-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t("course.name")} *</label>
+          <input id="course-name" name="name" required defaultValue={course?.name} placeholder="e.g. Strategic Management" />
         </div>
+        <details className="col-span-2"><summary className="cursor-pointer min-h-11 text-sm">{copy.moreDetails}</summary><div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">{t("course.code")}</label>
           <input name="code" defaultValue={course?.code} placeholder="e.g. MBA501" />
@@ -109,6 +116,7 @@ export default function CoursesPage() {
             <option value="completed">{t("course.status.completed")}</option>
           </select>
         </div>
+        </div></details>
       </div>
       <div className="flex gap-3 justify-end pt-2">
         <Button variant="secondary" type="button" onClick={() => { setAddOpen(false); setEditCourse(null); }}>
@@ -157,12 +165,13 @@ export default function CoursesPage() {
         </div>
       </div>
 
+      {loadError && <p role="alert" className="card text-red-700">{copy.loadError} <button className="underline" onClick={loadCourses}>{copy.retry}</button></p>}
       {/* Course grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton h-44 rounded-2xl" />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : loadError ? null : filtered.length === 0 ? (
         <EmptyState
           icon={<BookOpen />}
           title={t("courses.empty")}
@@ -222,12 +231,12 @@ export default function CoursesPage() {
 
       {/* Add modal */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title={t("courses.add")}>
-        <CourseForm />
+        {renderCourseForm()}
       </Modal>
 
       {/* Edit modal */}
       <Modal open={!!editCourse} onClose={() => setEditCourse(null)} title={t("course.edit")}>
-        <CourseForm course={editCourse} />
+        {renderCourseForm(editCourse)}
       </Modal>
 
       {/* Delete confirm */}

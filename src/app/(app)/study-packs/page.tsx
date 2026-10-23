@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { BookOpen, Plus, Sparkles, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -37,7 +38,9 @@ export default function StudyPacksPage() {
     (async () => {
       setLoading(true);
       const [pr, cr] = await Promise.all([fetch("/api/study-packs"), fetch("/api/courses")]);
-      if (pr.ok) setPacks(await pr.json());
+      const context = selectedCourseId();
+      if (context) setForm(prev => ({ ...prev, course_id: context }));
+      if (pr.ok) setPacks((await pr.json()).filter((p: StudyPack) => !context || p.course_id === context));
       if (cr.ok) setCourses(await cr.json());
       setLoading(false);
     })();
@@ -54,7 +57,7 @@ export default function StudyPacksPage() {
     if (r.ok) {
       const p = await r.json();
       setPacks(prev => [p, ...prev]);
-      setForm({ course_id: "", topic: "" });
+      setForm({ course_id: selectedCourseId(), topic: "" });
       setShowCreate(false);
     }
     setGenerating(false);

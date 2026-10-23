@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { Brain, Plus, CheckCircle, XCircle, RefreshCw, X, Sparkles } from "lucide-react";
 
 interface Quiz {
   id: string;
   pack_id: string;
+  study_pack_id?: string;
   course_name?: string;
   pack_topic?: string;
   title: string;
@@ -22,7 +24,7 @@ interface QuizQuestion {
   explanation?: string;
 }
 
-interface StudyPack { id: string; topic: string; course_name?: string; }
+interface StudyPack { course_id: string; id: string; topic: string; course_name?: string; }
 
 type Phase = "list" | "taking" | "results";
 
@@ -45,8 +47,11 @@ export default function QuizzesPage() {
     (async () => {
       setLoading(true);
       const [qr, pr] = await Promise.all([fetch("/api/quizzes"), fetch("/api/study-packs")]);
-      if (qr.ok) setQuizzes(await qr.json());
-      if (pr.ok) setPacks((await pr.json()).filter((p: any) => p.status === "ready"));
+      const context = selectedCourseId();
+      const available: StudyPack[] = pr.ok ? (await pr.json()).filter((p: any) => p.status === "ready" && (!context || p.course_id === context)) : [];
+      setPacks(available);
+      if (available.length === 1) setForm(prev => ({ ...prev, pack_id: available[0].id }));
+      if (qr.ok) setQuizzes((await qr.json()).filter((q: Quiz) => !context || available.some(p => p.id === (q.study_pack_id || q.pack_id))));
       setLoading(false);
     })();
   }, []);

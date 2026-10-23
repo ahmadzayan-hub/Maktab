@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { selectedCourseId } from "@/lib/journey/navigation";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { Layers, ChevronLeft, ChevronRight, RotateCcw, ThumbsUp, ThumbsDown, BookOpen } from "lucide-react";
 
 interface Flashcard {
   id: string;
   pack_id: string;
+  study_pack_id?: string;
   pack_topic?: string;
   course_name?: string;
   front: string;
@@ -14,7 +16,7 @@ interface Flashcard {
   difficulty?: number;
 }
 
-interface StudyPack { id: string; topic: string; course_name?: string; }
+interface StudyPack { course_id: string; id: string; topic: string; course_name?: string; }
 
 export default function FlashcardsPage() {
   const { t, dir } = useI18n();
@@ -31,7 +33,7 @@ export default function FlashcardsPage() {
     (async () => {
       const r = await fetch("/api/study-packs");
       if (r.ok) {
-        const p: StudyPack[] = (await r.json()).filter((p: any) => p.status === "ready");
+        const p: StudyPack[] = (await r.json()).filter((p: any) => p.status === "ready" && (!selectedCourseId() || p.course_id === selectedCourseId()));
         setPacks(p);
       }
       setLoading(false);
@@ -46,7 +48,7 @@ export default function FlashcardsPage() {
       const r = await fetch(url);
       if (r.ok) {
         const data = await r.json();
-        setCards(shuffle(data));
+        setCards(shuffle(data.filter((card: Flashcard) => !selectedCourseId() || packs.some(p => p.id === (card.study_pack_id || card.pack_id)))));
         setCurrent(0);
         setFlipped(false);
         setDone(false);

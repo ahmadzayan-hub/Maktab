@@ -127,43 +127,18 @@ Use the mark the sentence actually needs:
 Design each as a full page, with the **shared app chrome** (§7) always
 visible.
 
-### 6.1 · `/dashboard` — Home
+### 6.1 · `/dashboard` — Today
 
-The one screen a user opens 20× a day. Density comparable to Notion
-Calendar or Linear inbox.
-
-- **Learning Command Center** (first panel, directly under the hero):
-  the decision comes before the decoration. Three parts, in this order:
-  *Needs you* (open and overdue deadlines, nearest first), *Study plan*
-  (blocks allocated to the time the learner selects: 30 / 60 / 90 /
-  120 minutes), and *Exam readiness* (one row per course, weakest first,
-  each with the drivers that produced its score). Rendered by
-  `src/components/learning/StudyCommandCenter.tsx` from
-  `src/lib/learning/readiness.ts`.
-- **Every number on this screen is derived from the learner's own data.**
-  Readiness comes from graded performance, course coverage and deadline
-  proximity; a course with no graded work reports "No graded work yet"
-  rather than a figure, and overall readiness averages only the courses
-  that have evidence. Do not add a streak, a percentage, or any other
-  indicator that the data cannot support, and do not render a progress
-  ring for a plain count: a ring promises progress toward a total.
-- **Stat cards row** (4 cards): active courses, upcoming deadlines,
-  announcements, graded items. Counts only, each linking to its own
-  section. Glass-surface, 20 px radius, colour-coded brand-blue, amber,
-  purple, emerald.
-- **Next class** panel (large, prominent): course name, time, room or
-  Zoom link, one-tap "Prep in 5 min" button that opens the study pack
-  for that lecture.
-- **Weekly brief** (right column, 320 px): AI-generated summary of the
-  week — top 3 focus items, one paragraph, "regenerate" button. Sourced
-  from `/api/weekly-brief`.
-- **Quick actions** row: Upload lecture · Ask my MBA · New study pack ·
-  Add task. Uses `react-dropzone` for the upload target (drag anywhere
-  on the page).
-- **Course tiles** grid: 6 courses max, each with a progress ring
-  (assignments completed), colour band, next deadline chip.
-- **RTL variant** flips the sidebar to the right, chevrons mirror,
-  everything else mirrors via logical properties.
+A calm decision screen for a working MBA student. Ask how much time is available
+(15 / 30 / 60 / 90 minutes), recommend one course with a factual reason, and link
+to `/study?course_id=...&minutes=...`. The learner can override the suggestion.
+Show at most three nearest open deadlines; reveal readiness details on request.
+No grades means unknown readiness, not a blocked study action. Never fabricate
+identity, notifications, exam dates, flashcard counts, or AI recommendations.
+The first session is a self-guided review with a timer, personal notes and three
+retrieval prompts. Notes persist only in the current browser tab, scoped by user
+and course, with a download option and an honest storage warning. Practice does
+not create official grades or alter readiness. Keep assets and legacy routes.
 
 ### 6.2 · `/ask-mba` — Ask My MBA agent (the killer feature)
 
@@ -201,15 +176,17 @@ practice quiz + citations for one lecture or chapter.
   Flashcards are horizontal swipe (mobile) or arrow-keys (desktop). Quiz
   is one-question-at-a-time with immediate feedback + explanation.
 
-### 6.4 · `/lecture` — Lecture upload + processing
+### 6.4 · `/lecture` — Honest transcript capture and import
 
-- Big dropzone at top ("Drop the lecture recording, slides, or PDF").
-  Accepts `.mp3 .mp4 .pdf .pptx`.
-- Below: processing timeline — Transcribing → Summarising → Extracting
-  flashcards → Generating quiz → Done. Each step gets a soft glass tile
-  with a progress bar or check.
-- On completion: three CTAs — View summary · Open study pack · Email me
-  a copy (uses `/api/lecture/email`).
+Use existing browser speech recognition only when supported, with a visible
+warning that the browser provider may require an online service. This captures
+the microphone, not system audio. Unsupported or failed recognition must show
+an error; it must never substitute a sample transcript. There is no generated
+AI summary or working email provider on this route. Offer a local transcript
+download instead. An example requires an explicit click and stays labelled.
+Accept an explicit Hader version-1 JSON export (maximum 2 MB), preserving segment
+timestamps and live/import/demo provenance. Untimed segments remain untimed.
+This does not add an ASR engine, automatic Hader sync, or server-side storage.
 
 ### 6.5 · `/courses` + `/courses/[id]`
 
@@ -260,23 +237,21 @@ practice quiz + citations for one lecture or chapter.
 - Above-fold on landing has one clear CTA. No "Enter your email" nag
   before the user knows what the product does.
 
-## 7 · Shared app chrome (every authenticated screen)
+## 7 · Shared app chrome
 
-- **Left sidebar (268 px)**: logo (Maktab wordmark), primary sections
-  (Dashboard, Courses, Study Packs, Tasks, Calendar, Ask My MBA, Files,
-  Grades, Settings), collapsible on `<lg`. Sticky. Bottom of sidebar has
-  the user avatar + plan badge.
-- **Top bar (56 px, sticky)**: breadcrumbs, global command palette
-  (Cmd/Ctrl+K opens a Linear-style overlay), theme toggle, language
-  toggle, notifications bell, help.
-- **Mobile**: sidebar becomes a slide-in drawer; a bottom tab bar
-  (5 tabs) appears with Dashboard · Ask MBA · Tasks · Study Packs · Me.
-- **Empty states**: friendly, illustrated, one clear next action. Never
-  "No data yet."
-- **Loading**: skeleton screens (never spinners) that match the final
-  layout.
-- **Errors**: inline banners with an action ("Retry" · "Report"), not
-  modal alerts.
+Four primary sections: Today (`/dashboard`), My courses (`/courses`), Study
+(`/study`), My deadlines (`/timeline`). The same four appear in the mobile drawer.
+Account is secondary; Admin is visible only for a profile with the admin role,
+without changing server authorization. Identity comes from `/api/profile`.
+Use a neutral fallback, never another student's name or a fabricated plan badge.
+Course tools link to existing file, pack, tutor, quiz, flashcard and lecture routes
+with `course_id` context. Additional collaboration and learning tools remain
+available from the course/study surface. Calendar and tasks remain under deadlines;
+billing is under account. The dashboard also exposes announcements and weekly brief.
+Onboarding is a single optional name/language screen, then one course name. Put
+optional course metadata behind a disclosure. Save failures stay visible and never
+navigate away as if completed. New surfaces ship Arabic and English together.
+Retain existing tokens, fonts and assets. All touch targets are at least 44 px.
 
 ## 8 · Motion + interactions
 
@@ -393,6 +368,6 @@ tab bar.
 
 ---
 
-_Version 1. Update this file when tokens (`src/app/globals.css`,
+_Version 2. Update this file when tokens (`src/app/globals.css`,
 `tailwind.config.ts`) or route structure (`src/app/(app)/**`) change —
 the prompt drifts if the code drifts._

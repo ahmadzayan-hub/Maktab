@@ -17,7 +17,7 @@ export interface CourseInput {
 
 export interface GradeInput {
   course_id: string;
-  score: number;
+  score: number | null;
   max_score: number;
   /** Weight of this item in the final grade, if known. */
   weight?: number;
@@ -64,14 +64,18 @@ export function levelFor(score: number | null): ReadinessLevel {
   return 'weak';
 }
 
+export function isGradedItem(g: GradeInput): boolean {
+  return typeof g.score === "number" && Number.isFinite(g.score) && g.score >= 0 && Number.isFinite(g.max_score) && g.max_score > 0 && g.score <= g.max_score && (g.weight === undefined || (Number.isFinite(g.weight) && g.weight > 0));
+}
+
 /** Weighted average of graded work as a percentage, or null when ungraded. */
 export function gradeAverage(grades: GradeInput[]): number | null {
-  const usable = grades.filter((g) => g.max_score > 0);
+  const usable = grades.filter(isGradedItem);
   if (usable.length === 0) return null;
   const totalWeight = usable.reduce((sum, g) => sum + (g.weight ?? 1), 0);
   if (totalWeight === 0) return null;
   const weighted = usable.reduce(
-    (sum, g) => sum + (g.score / g.max_score) * 100 * (g.weight ?? 1),
+    (sum, g) => sum + (g.score! / g.max_score) * 100 * (g.weight ?? 1),
     0,
   );
   return Math.round(weighted / totalWeight);
@@ -94,13 +98,14 @@ export function courseReadiness(
   deadlines: DeadlineInput[],
   now: Date = new Date(),
 ): CourseReadiness {
-  const courseGrades = grades.filter((g) => g.course_id === course.id);
+  const courseGrades = grades.filter((g) => g.course_id === course.id && isGradedItem(g));
   const average = gradeAverage(courseGrades);
   const drivers: ReadinessDriver[] = [];
 
   const open = deadlines
     .filter((d) => d.course_id === course.id && !d.is_done)
     .map((d) => daysUntil(d.due_date, now))
+    .filter(Number.isFinite)
     .sort((a, b) => a - b);
   const daysToNextDeadline = open.length > 0 ? open[0]! : null;
 
@@ -130,7 +135,7 @@ export function courseReadiness(
   });
 
   // Coverage: material seen versus material examined.
-  const coverageGap = clamp(100 - course.progress);
+  const coverageGap = clamp(100 - (Number.isFinite(course.progress) ? course.progress : 0));
   const coveragePenalty = Math.round(coverageGap * 0.25);
   if (coveragePenalty > 0) {
     drivers.push({

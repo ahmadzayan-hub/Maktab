@@ -1,5 +1,7 @@
 "use client";
 
+import { useProfile } from "@/components/profile/ProfileProvider";
+import { journeyCopy } from "@/lib/journey/copy";
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { User, Globe, Bell, Shield, Trash2, Download, Lock, Eye, EyeOff, CheckCircle, LogOut, GraduationCap, Sparkles } from "lucide-react";
@@ -14,6 +16,8 @@ type Tab = "profile" | "language" | "notifications" | "privacy";
 
 export default function SettingsPage() {
   const { t, locale, setLocale, dir } = useI18n();
+  const { refresh } = useProfile();
+  const [saveError, setSaveError] = useState(false);
   const [tab, setTab] = useState<Tab>("profile");
   const [profile, setProfile] = useState<Profile>({ full_name: "" });
   const [saving, setSaving] = useState(false);
@@ -29,15 +33,13 @@ export default function SettingsPage() {
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    await fetch("/api/profile", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(profile),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true); setSaveError(false); setSaved(false);
+    try {
+      const response = await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile) });
+      if (!response.ok) throw new Error();
+      refresh(); setSaved(true); setTimeout(() => setSaved(false), 3000);
+    } catch { setSaveError(true); } finally { setSaving(false); }
+
   }
 
   async function changePassword(e: React.FormEvent) {
@@ -111,6 +113,8 @@ export default function SettingsPage() {
           {tab === "profile" && (
             <div className="card space-y-5">
               <h2 className="font-semibold text-slate-900 dark:text-white">{t("settings.profile.title")}</h2>
+              {saveError && <p role="alert" className="text-red-600">{journeyCopy[locale].saveError}</p>}
+              <Link href="/subscription" className="inline-block min-h-11 text-brand-600">{t("nav.subscription")}</Link>
               <form onSubmit={saveProfile} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("settings.profile.fullName")}</label>
