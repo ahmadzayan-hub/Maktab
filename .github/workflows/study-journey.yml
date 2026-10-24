@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - uses: actions/setup-python@v5
         with:
@@ -43,6 +43,7 @@ jobs:
             sleep 1
           done
           python tests/e2e/study_journey.py
+          python tests/e2e/local_document_evidence.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

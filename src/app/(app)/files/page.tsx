@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import LocalDocumentEvidence from "@/components/LocalDocumentEvidence";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { selectedCourseId as readCourseContext } from "@/lib/journey/navigation";
 import { useDropzone } from "react-dropzone";
@@ -12,7 +13,7 @@ interface PrivateFile {
   file_name: string;
   file_type: string;
   file_size: number;
-  processing_status: "pending" | "processing" | "ready" | "failed";
+  processing_status: "pending" | "processing" | "ready" | "failed" | "uploaded" | "archived";
   created_at: string;
   course_id: string | null;
   course_name?: string;
@@ -21,7 +22,11 @@ interface PrivateFile {
 interface Course { id: string; name: string; }
 
 export default function FilesPage() {
-  const { t, dir } = useI18n();
+  const { t, dir, locale } = useI18n();
+  const ar = locale === "ar";
+  const [uploadError, setUploadError] = useState("");
+  const [uploadNote, setUploadNote] = useState("");
+  const uploadLock = useRef(false);
   const [files, setFiles] = useState<PrivateFile[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,27 +52,24 @@ export default function FilesPage() {
   }, []);
 
   const onDrop = useCallback(async (accepted: File[]) => {
-    if (!accepted.length) return;
-    setUploading(true);
-    for (const file of accepted) {
-      const form = new FormData();
-      form.append("file", file);
-      if (selectedCourseId) form.append("course_id", selectedCourseId);
-      await fetch("/api/files", { method: "POST", body: form });
-    }
-    await fetchFiles();
-    setUploading(false);
-  }, [selectedCourseId]);
+    if (!accepted.length || uploadLock.current) return;
+    uploadLock.current = true; setUploading(true); setUploadError(""); setUploadNote("");
+    try {
+      for (const file of accepted) {
+        const form = new FormData(); form.append("file", file);
+        if (selectedCourseId) form.append("course_id", selectedCourseId);
+        const response = await fetch("/api/files", { method: "POST", body: form });
+        if (!response.ok) throw new Error();
+      }
+      setUploadNote(ar ? "تم تخزين النص. لم تتم فهرسته للبحث أو معالجته بالذكاء الاصطناعي." : "Text stored. Search indexing and AI processing have not run.");
+      await fetchFiles();
+    } catch { setUploadError(ar ? "تعذّر رفع الملف. في الوضع التجريبي، الرفع غير متاح. جرّب المعاينة المحلية أو TXT صغيرًا بحساب متصل." : "Upload failed. Demo uploads are unavailable. Use local preview, or a small TXT file with a connected account."); }
+    finally { uploadLock.current = false; setUploading(false); }
+  }, [selectedCourseId, ar]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "text/plain": [".txt"],
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
-    },
-    maxSize: 50 * 1024 * 1024,
+    onDrop, accept: { "text/plain": [".txt"] }, maxSize: 1024 * 1024, disabled: uploading,
+    onDropRejected: () => setUploadError(ar ? "الرفع السحابي يدعم TXT فقط حتى 1 ميجابايت. استخدم المعاينة المحلية لـ PDF وDOCX." : "Cloud upload supports TXT up to 1 MiB. Use local preview for PDF/DOCX."),
   });
 
   async function deleteFile(id: string) {
@@ -107,8 +109,14 @@ export default function FilesPage() {
         </div>
       </div>
 
-      {/* Upload zone */}
+      <LocalDocumentEvidence />
+
+      {/* Separate explicit cloud upload; local previews never use this path. */}
       <div className="card space-y-4">
+        <h2 className="text-lg font-semibold">{ar ? "رفع نص للحساب السحابي" : "Upload text to your cloud account"}</h2>
+        <p className="text-sm text-slate-500">{ar ? "اختياري: يتم إرسال TXT إلى مساحة حسابك فقط عند اختياره هنا. حتى 1 ميجابايت. لا توجد فهرسة أو معالجة AI تلقائية." : "Optional: selecting TXT here sends it to your account storage. Up to 1 MiB. No automatic search indexing or AI processing."}</p>
+        {uploadError && <p role="alert" className="text-red-600">{uploadError}</p>}
+        {uploadNote && <p role="status">{uploadNote}</p>}
         <div className="flex items-center gap-3 flex-wrap">
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t("files.linkToCourse")}</label>
           <select value={selectedCourseId} onChange={e => setSelectedCourseId(e.target.value)} className="w-48 text-sm">
@@ -139,7 +147,7 @@ export default function FilesPage() {
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {isDragActive ? t("files.dropNow") : t("files.dropOrClick")}
               </p>
-              <p className="text-xs text-slate-400">{t("files.supportedFormats")}</p>
+              <p className="text-xs text-slate-400">{ar ? "TXT فقط • حتى 1 ميجابايت" : "TXT only • up to 1 MiB"}</p>
             </div>
           )}
         </div>
@@ -193,7 +201,7 @@ export default function FilesPage() {
                   file.processing_status === "ready" ? "text-emerald-600" :
                   file.processing_status === "failed" ? "text-red-600" : "text-slate-400"
                 }`}>
-                  {t(`files.status.${file.processing_status}`)}
+                  {file.processing_status === "uploaded" ? (ar ? "مخزّن، غير مفهرس" : "Stored, not indexed") : file.processing_status === "archived" ? (ar ? "مؤرشف" : "Archived") : t(`files.status.${file.processing_status}`)}
                 </span>
               </div>
               <button
