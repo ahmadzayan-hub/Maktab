@@ -14,7 +14,10 @@ cleanup() {
 trap cleanup EXIT
 mkdir "$WORK/socket"
 initdb -D "$WORK/data" -A trust -U ingestion_test --no-locale >"$WORK/initdb.log"
-pg_ctl -D "$WORK/data" -l "$WORK/server.log" -o "-k $WORK/socket -c listen_addresses=''" -w start >/dev/null
+if ! pg_ctl -D "$WORK/data" -l "$WORK/server.log" -o "-k $WORK/socket -c listen_addresses=''" -w start >/dev/null; then
+  cat "$WORK/server.log" >&2
+  exit 1
+fi
 unset PGHOSTADDR PGSERVICE PGSERVICEFILE PGOPTIONS PGPASSWORD
 export PGHOST="$WORK/socket" PGPORT=5432 PGDATABASE=postgres PGUSER=ingestion_test
 psql -X -v ON_ERROR_STOP=1 -f "$ROOT/tests/ingestion/bootstrap.sql"
