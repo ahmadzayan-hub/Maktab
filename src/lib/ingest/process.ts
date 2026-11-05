@@ -1,5 +1,5 @@
 // Durable ingestion of one private file: claim -> download -> extract ->
-// chunk -> embed -> replace chunks -> ready, with every failure recorded on
+// chunk -> embed -> atomically publish chunks + ready, with failures recorded on
 // the file row. All side effects go through injected dependencies so the
 // whole path is unit-testable without Supabase or an embedding provider.
 import { chunkUnits, type Chunk, type ChunkOptions } from "./chunk";
@@ -23,15 +23,15 @@ export interface ChunkRow extends Chunk {
 
 export interface IngestStore {
   /**
-   * Atomically move the file to `processing`. Returns false when another
-   * worker already holds it (or the file is gone), in which case nothing
-   * else may be written.
+   * Atomically move the file to `processing` and return its new attempt ID.
+   * Returns null when unclaimable. Each successful reclaim invalidates all
+   * earlier attempts, including workers still extracting or embedding.
    */
-  claim(fileId: string): Promise<boolean>;
-  /** Delete any chunks from an earlier attempt and insert the new set. */
-  replaceChunks(fileId: string, rows: ChunkRow[]): Promise<void>;
-  markReady(fileId: string, info: { chunk_count: number; page_count: number | null }): Promise<void>;
-  markFailed(fileId: string, message: string): Promise<void>;
+  claim(fileId: string): Promise<string | null>;
+  /** Check ownership, replace all chunks and mark ready in one transaction. */
+  publish(fileId: string, attemptId: string, rows: ChunkRow[], pageCount: number | null): Promise<boolean>;
+  /** Returns false if this attempt no longer owns a processing file. */
+  markFailed(fileId: string, attemptId: string, message: string): Promise<boolean>;
 }
 
 export interface IngestDeps {
@@ -56,8 +56,8 @@ export function describeError(err: unknown): string {
 }
 
 export async function ingestFile(job: IngestJob, deps: IngestDeps): Promise<IngestResult> {
-  const claimed = await deps.store.claim(job.fileId);
-  if (!claimed) {
+  const attemptId = await deps.store.claim(job.fileId);
+  if (!attemptId) {
     return { ok: false, skipped: true, error: "File is not claimable (missing or already processing)" };
   }
 
@@ -77,12 +77,17 @@ export async function ingestFile(job: IngestJob, deps: IngestDeps): Promise<Inge
       rows.push({ ...chunk, file_id: job.fileId, user_id: job.userId, course_id: job.courseId, embedding });
     }
 
-    await deps.store.replaceChunks(job.fileId, rows);
-    await deps.store.markReady(job.fileId, { chunk_count: rows.length, page_count: doc.page_count });
+    const published = await deps.store.publish(job.fileId, attemptId, rows, doc.page_count);
+    if (!published) {
+      return { ok: false, skipped: true, error: "Ingestion attempt no longer owns the file" };
+    }
     return { ok: true, kind: doc.kind, chunk_count: rows.length, page_count: doc.page_count };
   } catch (err) {
     const error = describeError(err);
-    await deps.store.markFailed(job.fileId, error);
+    const recorded = await deps.store.markFailed(job.fileId, attemptId, error);
+    if (!recorded) {
+      return { ok: false, skipped: true, error: "Ingestion attempt no longer owns the file" };
+    }
     return { ok: false, error };
   }
 }

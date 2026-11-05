@@ -1,85 +1,53 @@
-// Supabase-backed IngestStore. Uses the service client because processing
-// runs outside the uploading user's request. Every transition is a single
-// conditional UPDATE so two workers cannot both own a file.
-import type { IngestStore, ChunkRow } from "./process";
+// Service-client adapter for the fenced ingestion RPCs in migration 0005.
+// Ownership checks and publication must stay in PostgreSQL: a client-side
+// check followed by delete/insert would race with a later reclaim.
+import type { IngestStore } from "./process";
 
-/** How long a `processing` row may sit before it is treated as abandoned. */
-export const STALE_PROCESSING_MS = 15 * 60 * 1000;
-const INSERT_BATCH = 50;
-
-// Structural type: enough of the Supabase query builder for this store,
-// so the module does not depend on generated database types.
-type Result<T = unknown> = { data: T | null; error: { message: string } | null };
+type Result = { data: unknown; error: { message: string } | null };
 export interface IngestClient {
-  from(table: string): {
-    update(values: Record<string, unknown>): {
-      eq(column: string, value: unknown): {
-        or(filters: string): { select(columns: string): PromiseLike<Result<unknown[]>> };
-      } & PromiseLike<Result>;
-    };
-    delete(): { eq(column: string, value: unknown): PromiseLike<Result> };
-    insert(rows: Record<string, unknown>[]): PromiseLike<Result>;
-  };
+  rpc(name: string, args: Record<string, unknown>): PromiseLike<Result>;
 }
 
 function throwIf(error: { message: string } | null, what: string): void {
   if (error) throw new Error(`${what}: ${error.message}`);
 }
 
-export function createIngestStore(client: IngestClient, now: () => Date = () => new Date()): IngestStore {
+export function createIngestStore(client: IngestClient): IngestStore {
   return {
     async claim(fileId) {
-      const staleBefore = new Date(now().getTime() - STALE_PROCESSING_MS).toISOString();
-      const { data, error } = await client
-        .from("private_files")
-        .update({ processing_status: "processing", processing_error: null, processing_started_at: now().toISOString() })
-        .eq("id", fileId)
-        .or(`processing_status.in.(pending,failed),and(processing_status.eq.processing,processing_started_at.lt.${staleBefore})`)
-        .select("id");
+      const { data, error } = await client.rpc("claim_file_ingestion", { p_file_id: fileId });
       throwIf(error, "claim");
-      return Array.isArray(data) && data.length === 1;
+      return typeof data === "string" && data.length > 0 ? data : null;
     },
 
-    async replaceChunks(fileId, rows: ChunkRow[]) {
-      const del = await client.from("document_chunks").delete().eq("file_id", fileId);
-      throwIf(del.error, "delete old chunks");
-      for (let i = 0; i < rows.length; i += INSERT_BATCH) {
-        const batch = rows.slice(i, i + INSERT_BATCH).map((r) => ({
-          file_id: r.file_id,
-          user_id: r.user_id,
-          course_id: r.course_id,
+    async publish(fileId, attemptId, rows, pageCount) {
+      // One RPC transaction replaces the complete set, including files larger
+      // than the former 50-row batch size. Never fall back to unguarded writes.
+      const { data, error } = await client.rpc("publish_file_ingestion", {
+        p_file_id: fileId,
+        p_attempt_id: attemptId,
+        p_chunks: rows.map((r) => ({
           chunk_index: r.chunk_index,
           text: r.text,
           token_count: r.token_count,
           page_num: r.page_num,
           slide_num: r.slide_num,
           embedding: r.embedding,
-        }));
-        const ins = await client.from("document_chunks").insert(batch);
-        throwIf(ins.error, "insert chunks");
-      }
+        })),
+        p_page_count: pageCount,
+      });
+      throwIf(error, "publish chunks");
+      return data === true;
     },
 
-    async markReady(fileId, info) {
-      const { error } = await client
-        .from("private_files")
-        .update({
-          processing_status: "ready",
-          processing_error: null,
-          chunk_count: info.chunk_count,
-          page_count: info.page_count,
-          processed_at: now().toISOString(),
-        })
-        .eq("id", fileId);
-      throwIf(error, "mark ready");
-    },
-
-    async markFailed(fileId, message) {
-      const { error } = await client
-        .from("private_files")
-        .update({ processing_status: "failed", processing_error: message, processed_at: now().toISOString() })
-        .eq("id", fileId);
+    async markFailed(fileId, attemptId, message) {
+      const { data, error } = await client.rpc("fail_file_ingestion", {
+        p_file_id: fileId,
+        p_attempt_id: attemptId,
+        p_message: message,
+      });
       throwIf(error, "mark failed");
+      return data === true;
     },
   };
 }
