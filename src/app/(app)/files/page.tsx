@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/I18nProvider";
 import { selectedCourseId as readCourseContext } from "@/lib/journey/navigation";
 import { useDropzone } from "react-dropzone";
-import { Upload, File, FileText, FolderOpen, Trash2, Eye, Loader2, CheckCircle, AlertCircle, Search } from "lucide-react";
+import { Upload, File, FileText, FolderOpen, Trash2, Eye, Loader2, CheckCircle, AlertCircle, Search, RotateCcw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface PrivateFile {
@@ -13,6 +13,8 @@ interface PrivateFile {
   file_type: string;
   file_size: number;
   processing_status: "pending" | "processing" | "ready" | "failed";
+  processing_error?: string | null;
+  chunk_count?: number | null;
   created_at: string;
   course_id: string | null;
   course_name?: string;
@@ -33,6 +35,20 @@ export default function FilesPage() {
   async function fetchFiles() {
     const r = await fetch("/api/files");
     if (r.ok) setFiles(await r.json());
+  }
+
+  // Processing finishes in the background: poll while any file is still in flight.
+  const inFlight = files.some(f => f.processing_status === "pending" || f.processing_status === "processing");
+  useEffect(() => {
+    if (!inFlight) return;
+    const timer = setInterval(fetchFiles, 5000);
+    return () => clearInterval(timer);
+  }, [inFlight]);
+
+  async function reprocess(id: string) {
+    setFiles(prev => prev.map(f => (f.id === id ? { ...f, processing_status: "processing", processing_error: null } : f)));
+    await fetch(`/api/files/${id}/reprocess`, { method: "POST" });
+    await fetchFiles();
   }
 
   useEffect(() => {
@@ -196,6 +212,16 @@ export default function FilesPage() {
                   {t(`files.status.${file.processing_status}`)}
                 </span>
               </div>
+              {file.processing_status === "failed" && (
+                <button
+                  onClick={() => reprocess(file.id)}
+                  title={file.processing_error ?? undefined}
+                  className="p-1.5 text-slate-400 hover:text-brand-600 transition-colors"
+                  aria-label={t("files.retry")}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => deleteFile(file.id)}
                 className="p-1.5 text-slate-400 hover:text-red-600 transition-colors"

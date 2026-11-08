@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/db/supabase-server";
-import { createServiceClient } from "@/lib/db/supabase-server";
+import { runIngestion } from "@/lib/ingest/runtime";
+import { documentKind } from "@/lib/ingest/extract";
 import { demoReturn } from "@/lib/demo";
 
 export async function GET() {
@@ -36,13 +37,7 @@ export async function POST(req: NextRequest) {
   const maxSize = 50 * 1024 * 1024;
   if (file.size > maxSize) return NextResponse.json({ error: "File too large (max 50MB)" }, { status: 400 });
 
-  const allowedTypes = [
-    "application/pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "text/plain",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ];
-  if (!allowedTypes.includes(file.type)) {
+  if (!documentKind(file.type, file.name)) {
     return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
   }
 
@@ -72,60 +67,17 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Trigger async processing (fire and forget)
-  processFile(data.id, path, file.type, user.id).catch(console.error);
+  // Start processing. The row is durable (`pending`) before this runs, so a
+  // crash here leaves a retryable file, not a lost one; POST /api/files/[id]/reprocess
+  // re-claims it. There is no queue yet: see README "Ingestion".
+  void runIngestion({
+    fileId: data.id,
+    userId: user.id,
+    courseId: courseId || null,
+    storagePath: path,
+    mimeType: file.type,
+    fileName: file.name,
+  }).catch((err) => console.error("[ingest] unexpected error", err));
 
   return NextResponse.json(data, { status: 201 });
-}
-
-async function processFile(fileId: string, storagePath: string, fileType: string, userId: string) {
-  const adminClient = createServiceClient();
-
-  await adminClient.from("private_files").update({ processing_status: "processing" }).eq("id", fileId);
-
-  try {
-    const { data: fileData } = await adminClient.storage.from("private-files").download(storagePath);
-    if (!fileData) throw new Error("Could not download file");
-
-    const text = await fileData.text();
-    if (!text.trim()) throw new Error("Empty file content");
-
-    // Chunk text (simple paragraph-based chunking)
-    const chunks = chunkText(text, 800, 100);
-
-    // Get embeddings and store
-    const { getEmbedding } = await import("@/lib/ai/client");
-
-    for (let i = 0; i < chunks.length; i++) {
-      const embedding = await getEmbedding(chunks[i]);
-      await adminClient.from("document_chunks").insert({
-        file_id: fileId,
-        user_id: userId,
-        chunk_index: i,
-        content: chunks[i],
-        embedding,
-        token_count: Math.ceil(chunks[i].length / 4),
-      });
-    }
-
-    await adminClient.from("private_files").update({ processing_status: "ready", chunk_count: chunks.length }).eq("id", fileId);
-  } catch (err) {
-    console.error("File processing error:", err);
-    await adminClient.from("private_files").update({ processing_status: "failed" }).eq("id", fileId);
-  }
-}
-
-function chunkText(text: string, chunkSize: number, overlap: number): string[] {
-  const words = text.split(/\s+/);
-  const chunks: string[] = [];
-  let start = 0;
-
-  while (start < words.length) {
-    const end = Math.min(start + chunkSize, words.length);
-    chunks.push(words.slice(start, end).join(" "));
-    if (end === words.length) break;
-    start = end - overlap;
-  }
-
-  return chunks.filter(c => c.length > 50);
 }
