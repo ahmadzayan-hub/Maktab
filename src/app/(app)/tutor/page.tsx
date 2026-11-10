@@ -7,8 +7,9 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useToast } from "@/components/ui/Toast";
 import { Bot, Send, Plus, BookOpen, AlertCircle, ChevronDown } from "lucide-react";
 import clsx from "clsx";
+import { formatCitationLabel, type CitationLabel } from "@/lib/rag/citation-label";
 
-interface Message { role: "user"|"assistant"; content: string; citations?: {file_name: string; page_num?: number}[]; is_grounded?: boolean; }
+interface Message { role: "user"|"assistant"; content: string; citations?: CitationLabel[]; is_grounded?: boolean; }
 interface Chat { id: string; title: string; created_at: string; }
 interface Course { id: string; name: string; }
 
@@ -152,7 +153,7 @@ export default function TutorPage() {
                       {m.citations.map((c, ci) => (
                         <span key={ci} className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded-lg">
                           <BookOpen size={11} />
-                          {c.file_name}{c.page_num ? ` · p.${c.page_num}` : ""}
+                          {formatCitationLabel(c)}
                         </span>
                       ))}
                     </div>

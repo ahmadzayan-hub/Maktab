@@ -13,6 +13,13 @@ in `src/app/globals.css` and `tailwind.config.ts`.
 
 ## 1 · Product in one paragraph
 
+Tutor source chips preserve the prompt's numbered excerpt references: new
+citations display `[Source N] filename · p.X` (omit the page when absent).
+Keep multiple excerpts from the same file/page separate. Historical citations
+without a stored source number display only filename/page; never infer their
+number from the chip's position. These are retrieved references, not a visual
+guarantee that an AI answer is correct. See [citation behavior](TUTOR_CITATIONS.md).
+
 **Tweenz AI Learning OS** (Arabic name: **مكتب / Maktab**, meaning
 "desk") is a bilingual (English + Arabic, full RTL) SaaS for MBA students
 in the UAE. It is one workspace where a student's whole academic life

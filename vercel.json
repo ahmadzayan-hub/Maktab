@@ -7,7 +7,8 @@
   "regions": ["iad1"],
   "git": {
     "deploymentEnabled": {
-      "ci/ingestion-postgres-regression": false
+      "ci/ingestion-postgres-regression": false,
+      "fix/tutor-citation-numbering": false
     }
   },
   "env": {
