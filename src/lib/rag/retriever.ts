@@ -1,5 +1,6 @@
 import { getEmbedding } from "@/lib/ai/client";
 import { createClient } from "@/lib/db/supabase-server";
+import type { CitationLabel } from "./citation-label";
 
 export interface RetrievedChunk {
   chunk_id: string;
@@ -9,8 +10,10 @@ export interface RetrievedChunk {
   similarity: number;
 }
 
-export interface Citation {
-  file_name: string;
+export interface Citation extends CitationLabel {
+  source_number: number;
+  file_id: string;
+  chunk_id: string;
   page_num: number | null;
   chunk_text: string;
 }
@@ -47,15 +50,13 @@ export function buildContext(chunks: RetrievedChunk[], fileNames: Map<string, st
 }
 
 export function extractCitations(chunks: RetrievedChunk[], fileNames: Map<string, string>): Citation[] {
-  const seen = new Set<string>();
+  // buildContext numbers every excerpt. Deduplicating by file/page here
+  // discards sources and breaks that mapping, especially for unpaginated files.
   return chunks
-    .filter(c => {
-      const key = `${c.file_id}:${c.page_num}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .map(c => ({
+    .map((c, i) => ({
+      source_number: i + 1,
+      file_id: c.file_id,
+      chunk_id: c.chunk_id,
       file_name: fileNames.get(c.file_id) ?? "Unknown file",
       page_num: c.page_num,
       chunk_text: c.text.slice(0, 200),
