@@ -18,6 +18,20 @@ it is intentionally not a full Supabase/auth environment. Production migrations
 is applied twice to check idempotence. These tests are separate from Vitest;
 `npm test` does not run them.
 
+## Continuous integration
+
+`.github/workflows/ingestion-postgres.yml` runs this same harness on every PR
+targeting `main` and every push to `main`. It uses PostgreSQL 16 on Ubuntu 24.04
+and builds pgvector 0.8.2 from its pinned upstream commit. The job runs as the
+ordinary runner user, with no application secrets, database URL, or deployment
+step. The harness creates its own temporary socket-only cluster; it does not
+use any preinstalled system cluster. The assertion/concurrency log is retained
+as `ingestion-postgres-regression` for seven days, including on test failure.
+
+The application quality and student-journey jobs remain separate. A successful
+database job proves this synthetic fixture and migrations passed; it does not
+prove hosted Supabase/RLS behavior or apply migrations to any live database.
+
 ## Coverage
 
 - Pending claim, fresh duplicate, exact 15-minute boundary, stale reclaim,

@@ -1,0 +1,54 @@
+name: Ingestion PostgreSQL regression
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ingestion-postgres-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ingestion:
+    name: PostgreSQL claims, publication and concurrent retries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out pgvector 0.8.2
+        uses: actions/checkout@v4
+        with:
+          repository: pgvector/pgvector
+          ref: cab9da72c04353f143bb06b42ab70a403daac64a
+          path: .test-deps/pgvector
+          persist-credentials: false
+
+      - name: Install isolated-test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-16 postgresql-server-dev-16 build-essential python3
+          make -C .test-deps/pgvector PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config OPTFLAGS=""
+          sudo make -C .test-deps/pgvector PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config install
+          echo /usr/lib/postgresql/16/bin >> "$GITHUB_PATH"
+
+      - name: Run regression suite in a temporary socket-only cluster
+        run: |
+          mkdir -p test-results
+          bash tests/ingestion/run-postgres.sh 2>&1 | tee test-results/ingestion-postgres.log
+
+      - name: Retain database assertions and concurrency results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingestion-postgres-regression
+          path: test-results/ingestion-postgres.log
+          if-no-files-found: ignore
+          retention-days: 7
