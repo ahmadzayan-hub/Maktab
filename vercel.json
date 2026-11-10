@@ -5,6 +5,11 @@
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "regions": ["iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "ci/ingestion-postgres-regression": false
+    }
+  },
   "env": {
     "NEXT_PUBLIC_DEMO_MODE": "true"
   }
